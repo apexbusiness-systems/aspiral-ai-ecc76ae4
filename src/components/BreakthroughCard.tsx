@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, ArrowRight, Download, Share2, RotateCcw, X } from "lucide-react";
+import { Zap, ArrowRight, Share2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface BreakthroughData {
   friction: string;
@@ -24,16 +24,24 @@ export function BreakthroughCard({
   onNewSession 
 }: BreakthroughCardProps) {
   const [showContent, setShowContent] = useState(false);
+  const { playBreakthrough } = useSoundEffects({ enabled: true, volume: 0.6 });
+  const hasPlayedSound = useRef(false);
 
   useEffect(() => {
     if (isVisible && data) {
+      // Play breakthrough chime sound once
+      if (!hasPlayedSound.current) {
+        playBreakthrough();
+        hasPlayedSound.current = true;
+      }
       // Stagger content reveal
       const timer = setTimeout(() => setShowContent(true), 600);
       return () => clearTimeout(timer);
     } else {
       setShowContent(false);
+      hasPlayedSound.current = false;
     }
-  }, [isVisible, data]);
+  }, [isVisible, data, playBreakthrough]);
 
   if (!data) return null;
 
