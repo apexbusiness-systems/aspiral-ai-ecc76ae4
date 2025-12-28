@@ -8,6 +8,8 @@ import { MicButton } from "@/components/MicButton";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { QuestionBubble } from "@/components/QuestionBubble";
 import { SpiralScene } from "@/components/3d/SpiralScene";
+import { BreakthroughCard } from "@/components/BreakthroughCard";
+import { UltraFastToggle } from "@/components/UltraFastToggle";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useSpiralAI } from "@/hooks/useSpiralAI";
 import { useSessionStore } from "@/stores/sessionStore";
@@ -41,11 +43,16 @@ export function SpiralChat() {
     questionCount,
     maxQuestions,
     breakthroughData,
+    showBreakthroughCard,
+    ultraFastMode,
     processTranscript,
     accumulateTranscript,
     sendBuffer,
     dismissQuestion,
     skipToBreakthrough,
+    dismissBreakthroughCard,
+    toggleUltraFastMode,
+    resetSession,
   } = useSpiralAI({
     onEntitiesExtracted: (entities) => {
       toast({
@@ -206,8 +213,21 @@ export function SpiralChat() {
     });
   };
 
+  const handleNewSession = () => {
+    resetSession();
+    useSessionStore.getState().reset();
+    dismissBreakthroughCard();
+  };
+
   return (
     <div className="flex h-[calc(100vh-73px)] flex-col lg:flex-row">
+      {/* Breakthrough Overlay Card */}
+      <BreakthroughCard
+        data={breakthroughData}
+        isVisible={showBreakthroughCard}
+        onDismiss={dismissBreakthroughCard}
+        onNewSession={handleNewSession}
+      />
       {/* 3D Visualization Panel */}
       <div 
         className={`relative border-b lg:border-b-0 lg:border-r border-border/30 transition-all duration-500 ${
@@ -256,6 +276,12 @@ export function SpiralChat() {
         
         {/* Entity Counter & Demo Controls */}
         <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
+          {/* Ultra-fast mode toggle */}
+          <UltraFastToggle
+            isEnabled={ultraFastMode}
+            onToggle={toggleUltraFastMode}
+          />
+          
           {entityCount > 0 ? (
             <div className="glass-card rounded-xl px-3 py-1.5 text-xs text-muted-foreground">
               {entityCount} {entityCount === 1 ? "entity" : "entities"}

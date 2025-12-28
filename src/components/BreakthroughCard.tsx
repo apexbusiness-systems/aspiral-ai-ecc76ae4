@@ -1,0 +1,213 @@
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Zap, ArrowRight, Download, Share2, RotateCcw, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+interface BreakthroughData {
+  friction: string;
+  grease: string;
+  insight: string;
+}
+
+interface BreakthroughCardProps {
+  data: BreakthroughData | null;
+  isVisible: boolean;
+  onDismiss: () => void;
+  onNewSession: () => void;
+}
+
+export function BreakthroughCard({ 
+  data, 
+  isVisible, 
+  onDismiss,
+  onNewSession 
+}: BreakthroughCardProps) {
+  const [showContent, setShowContent] = useState(false);
+
+  useEffect(() => {
+    if (isVisible && data) {
+      // Stagger content reveal
+      const timer = setTimeout(() => setShowContent(true), 600);
+      return () => clearTimeout(timer);
+    } else {
+      setShowContent(false);
+    }
+  }, [isVisible, data]);
+
+  if (!data) return null;
+
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md"
+            onClick={onDismiss}
+          />
+
+          {/* Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ 
+              type: "spring", 
+              damping: 25, 
+              stiffness: 300,
+              delay: 0.2 
+            }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[101] max-w-lg mx-auto"
+          >
+            <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-card via-card to-card/80 shadow-2xl">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 opacity-50" />
+              <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/30 blur-3xl" />
+              <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-secondary/30 blur-3xl" />
+
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDismiss}
+                className="absolute top-4 right-4 z-10 rounded-full hover:bg-foreground/10"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+
+              {/* Content */}
+              <div className="relative p-8 pt-12">
+                {/* Header */}
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-center mb-8"
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 mb-4">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">BREAKTHROUGH</span>
+                  </div>
+                </motion.div>
+
+                {/* Friction */}
+                <AnimatePresence>
+                  {showContent && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="mb-6"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-warning/20 border border-warning/30 flex items-center justify-center">
+                          <span className="text-lg">⚡</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-warning uppercase tracking-wider mb-1">The Friction</p>
+                          <p className="text-foreground font-medium">{data.friction}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Arrow */}
+                <AnimatePresence>
+                  {showContent && (
+                    <motion.div
+                      initial={{ opacity: 0, scaleY: 0 }}
+                      animate={{ opacity: 1, scaleY: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="flex justify-center my-4"
+                    >
+                      <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Grease */}
+                <AnimatePresence>
+                  {showContent && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="mb-6"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center">
+                          <span className="text-lg">💧</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-accent uppercase tracking-wider mb-1">The Grease</p>
+                          <p className="text-foreground font-medium">{data.grease}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Insight */}
+                <AnimatePresence>
+                  {showContent && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.6, type: "spring" }}
+                      className="mt-8 p-6 rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/5 border border-primary/20"
+                    >
+                      <p className="text-xs font-medium text-secondary uppercase tracking-wider mb-3 text-center">💡 The Insight</p>
+                      <p className="text-lg font-display font-semibold text-center text-foreground leading-relaxed">
+                        "{data.insight}"
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Actions */}
+                <AnimatePresence>
+                  {showContent && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.8 }}
+                      className="flex items-center justify-center gap-3 mt-8"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl gap-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `🔥 ${data.friction}\n💧 ${data.grease}\n💡 "${data.insight}"`
+                          );
+                        }}
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                        Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="rounded-xl gap-2 bg-gradient-to-r from-primary to-secondary"
+                        onClick={onNewSession}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        New Spiral
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
