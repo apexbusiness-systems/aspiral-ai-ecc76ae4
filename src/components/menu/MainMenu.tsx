@@ -1,5 +1,6 @@
 import { useState, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   X,
   Pause,
@@ -13,6 +14,9 @@ import {
   Settings,
   HelpCircle,
   Keyboard,
+  Users,
+  Key,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -54,6 +58,7 @@ export function MainMenu({
   onHelp,
   sessionProgress,
 }: MainMenuProps) {
+  const navigate = useNavigate();
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
 
   const hasActiveSession = sessionState !== "idle";
@@ -287,6 +292,30 @@ export function MainMenu({
                     shortcut="H"
                     onClick={() => {
                       onViewHistory();
+                      onClose();
+                    }}
+                  />
+                  <MenuAction
+                    icon={LayoutDashboard}
+                    label="Admin Dashboard"
+                    onClick={() => {
+                      navigate('/dashboard');
+                      onClose();
+                    }}
+                  />
+                  <MenuAction
+                    icon={Users}
+                    label="Workspaces"
+                    onClick={() => {
+                      navigate('/workspaces');
+                      onClose();
+                    }}
+                  />
+                  <MenuAction
+                    icon={Key}
+                    label="API Keys"
+                    onClick={() => {
+                      navigate('/api-keys');
                       onClose();
                     }}
                   />
