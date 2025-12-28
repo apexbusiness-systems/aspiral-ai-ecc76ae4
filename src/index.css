@@ -1,96 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* aSpiral Design System - Enterprise-Grade */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core Brand Colors - Deep Space Theme */
+    --background: 230 25% 8%;
+    --foreground: 220 20% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 230 25% 12%;
+    --card-foreground: 220 20% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 230 25% 10%;
+    --popover-foreground: 220 20% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Spiral Violet */
+    --primary: 265 85% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Cosmic Blue */
+    --secondary: 220 70% 50%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted: Nebula Gray */
+    --muted: 230 20% 18%;
+    --muted-foreground: 220 15% 60%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent: Aurora Cyan */
+    --accent: 185 85% 50%;
+    --accent-foreground: 230 25% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Success: Breakthrough Green */
+    --success: 150 80% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Warning: Friction Amber */
+    --warning: 35 95% 55%;
+    --warning-foreground: 230 25% 8%;
 
-    --radius: 0.5rem;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
+    --border: 230 20% 20%;
+    --input: 230 20% 15%;
+    --ring: 265 85% 60%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --radius: 0.75rem;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Spiral-specific tokens */
+    --spiral-glow: 265 85% 65%;
+    --friction-color: 35 95% 55%;
+    --grease-color: 150 80% 45%;
+    --entity-color: 265 70% 55%;
+    --connection-color: 220 70% 50%;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    /* Gradients */
+    --gradient-spiral: linear-gradient(135deg, hsl(265 85% 60%), hsl(220 70% 50%));
+    --gradient-breakthrough: linear-gradient(135deg, hsl(150 80% 45%), hsl(185 85% 50%));
+    --gradient-friction: linear-gradient(135deg, hsl(35 95% 55%), hsl(0 75% 55%));
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(265 85% 60% / 0.3);
+    --shadow-entity: 0 0 20px hsl(265 70% 55% / 0.5);
+    --shadow-card: 0 8px 32px hsl(230 25% 4% / 0.5);
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar - consistent with main theme */
+    --sidebar-background: 230 25% 10%;
+    --sidebar-foreground: 220 20% 95%;
+    --sidebar-primary: 265 85% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 230 20% 18%;
+    --sidebar-accent-foreground: 220 20% 95%;
+    --sidebar-border: 230 20% 20%;
+    --sidebar-ring: 265 85% 60%;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+  /* Light mode for accessibility */
+  .light {
+    --background: 220 20% 98%;
+    --foreground: 230 25% 10%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 230 25% 10%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 25% 10%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 265 75% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 60% 45%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 15% 92%;
+    --muted-foreground: 230 15% 40%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 185 75% 40%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --success: 150 70% 40%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --warning: 35 85% 50%;
+    --warning-foreground: 230 25% 10%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 92%;
+    --ring: 265 75% 50%;
+
+    --spiral-glow: 265 75% 55%;
+    --friction-color: 35 85% 50%;
+    --grease-color: 150 70% 40%;
+    --entity-color: 265 60% 50%;
+    --connection-color: 220 60% 45%;
+
+    --shadow-glow: 0 0 40px hsl(265 75% 50% / 0.2);
+    --shadow-entity: 0 0 20px hsl(265 60% 50% / 0.3);
+    --shadow-card: 0 8px 32px hsl(230 25% 10% / 0.1);
   }
 }
 
@@ -100,6 +137,140 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/30;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer components {
+  /* Spiral-specific components */
+  .spiral-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .entity-glow {
+    box-shadow: var(--shadow-entity);
+  }
+
+  .gradient-spiral {
+    background: var(--gradient-spiral);
+  }
+
+  .gradient-breakthrough {
+    background: var(--gradient-breakthrough);
+  }
+
+  .gradient-friction {
+    background: var(--gradient-friction);
+  }
+
+  /* Mic button pulsing animation */
+  .mic-pulse {
+    animation: mic-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes mic-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 20px hsl(var(--primary) / 0);
+    }
+  }
+
+  /* Friction grinding animation */
+  .friction-shake {
+    animation: friction-shake 0.3s ease-in-out infinite;
+  }
+
+  @keyframes friction-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px) rotate(-1deg); }
+    75% { transform: translateX(2px) rotate(1deg); }
+  }
+
+  /* Breakthrough flash */
+  .breakthrough-flash {
+    animation: breakthrough-flash 0.5s ease-out;
+  }
+
+  @keyframes breakthrough-flash {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Entity spawn animation */
+  .entity-spawn {
+    animation: entity-spawn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  @keyframes entity-spawn {
+    0% {
+      opacity: 0;
+      transform: scale(0) translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Glass morphism card */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Typing indicator */
+  .typing-dot {
+    animation: typing-bounce 1.4s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(1) { animation-delay: 0s; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+  }
+}
+
+@layer utilities {
+  .text-gradient-spiral {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-spiral);
+  }
+
+  .text-gradient-breakthrough {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-breakthrough);
   }
 }
