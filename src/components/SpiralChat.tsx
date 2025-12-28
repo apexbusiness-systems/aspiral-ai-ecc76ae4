@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Send, Maximize2, Minimize2, Sparkles, Cog, Droplets, Zap, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, LayoutGroup } from "framer-motion";
@@ -20,12 +21,16 @@ import { EntityCardList } from "@/components/EntityCard";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useSpiralAI } from "@/hooks/useSpiralAI";
 import { useSessionStore } from "@/stores/sessionStore";
+import { useSessionPersistence } from "@/hooks/useSessionPersistence";
+import { useAuth } from "@/contexts/AuthContext";
 import { useKeyboardShortcuts, ASPIRAL_SHORTCUTS } from "@/hooks/useKeyboardShortcuts";
 import type { EntityType, Entity } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { OmniLinkAdapter } from "@/integrations/omnilink";
 
 export function SpiralChat() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [input, setInput] = useState("");
   const [is3DExpanded, setIs3DExpanded] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,6 +39,14 @@ export function SpiralChat() {
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // Session persistence
+  const { 
+    save: saveSession, 
+    saveBreakthrough,
+    isSaving, 
+    lastSaved 
+  } = useSessionPersistence();
 
   const {
     createSession, 
@@ -125,13 +138,14 @@ export function SpiralChat() {
     setLiveTranscript(transcript);
   }, [transcript]);
 
-  // Initialize session on mount
+  // Initialize session on mount with user ID if authenticated
   useEffect(() => {
     if (!currentSession) {
-      const session = createSession("anonymous");
+      const userId = user?.id || "anonymous";
+      const session = createSession(userId);
       OmniLinkAdapter.publishSessionStarted(session.id, session.userId);
     }
-  }, [currentSession, createSession]);
+  }, [currentSession, createSession, user]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -285,9 +299,13 @@ export function SpiralChat() {
     toast({ title: "Session Stopped", description: "Your session has been ended." });
   }, [handleNewSession, toast]);
 
-  const handleSave = useCallback(() => {
-    toast({ title: "Progress Saved", description: "Your session has been saved." });
-  }, [toast]);
+  const handleSave = useCallback(async () => {
+    await saveSession();
+    toast({ 
+      title: "Progress Saved", 
+      description: isSaving ? "Saving..." : "Your session has been saved." 
+    });
+  }, [saveSession, isSaving, toast]);
 
   const handleExport = useCallback(() => {
     if (breakthroughData) {
@@ -298,8 +316,8 @@ export function SpiralChat() {
   }, [breakthroughData, toast]);
 
   const handleViewHistory = useCallback(() => {
-    toast({ title: "Coming Soon", description: "Session history will be available soon." });
-  }, [toast]);
+    navigate('/sessions');
+  }, [navigate]);
 
   const handleSettings = useCallback(() => {
     setIsSettingsOpen(true);
