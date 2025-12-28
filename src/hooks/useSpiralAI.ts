@@ -7,7 +7,7 @@
  * - Prevents race conditions via event-driven state management
  */
 
-import { useState, useCallback, useRef, useReducer, useMemo } from "react";
+import { useState, useCallback, useRef, useReducer, useMemo, useEffect } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { createLogger } from "@/lib/logger";
 import { isUserFrustrated, wantsToSkip } from "@/lib/frustrationDetector";
@@ -93,19 +93,28 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
   const { autoSendInterval = 10000, userTier = "free" } = options;
   const entityLimit = getEntityLimit(userTier);
   
+  // Store options in ref to avoid stale closures
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  
   // =========================================================================
   // DETERMINISTIC FSM - The Brain
   // =========================================================================
   const [machineContext, dispatch] = useReducer(spiralReducer, undefined, createInitialContext);
   
-  // Typed dispatch helper
+  // Typed dispatch helper - simple, no side effects
   const sendEvent = useCallback((event: SpiralEvent) => {
     dispatch(event);
-    
-    // Call state change callback after dispatch
-    const nextContext = spiralReducer(machineContext, event);
-    options.onStateChange?.(nextContext.state, nextContext.processingSubState);
-  }, [machineContext, options]);
+  }, []);
+  
+  // State change callback via useEffect (safe, avoids race conditions)
+  const previousStateRef = useRef(machineContext.state);
+  useEffect(() => {
+    if (previousStateRef.current !== machineContext.state) {
+      optionsRef.current.onStateChange?.(machineContext.state, machineContext.processingSubState);
+      previousStateRef.current = machineContext.state;
+    }
+  }, [machineContext.state, machineContext.processingSubState]);
   
   // =========================================================================
   // DERIVED STATE (Backward Compatible API)
