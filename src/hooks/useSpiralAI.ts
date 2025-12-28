@@ -74,6 +74,8 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
   const [currentStage, setCurrentStage] = useState<ConversationStage>("friction");
   const [lastResponse, setLastResponse] = useState<string | null>(null);
   const [breakthroughData, setBreakthroughData] = useState<BreakthroughData | null>(null);
+  const [showBreakthroughCard, setShowBreakthroughCard] = useState(false);
+  const [ultraFastMode, setUltraFastMode] = useState(false);
   const transcriptBufferRef = useRef<string>("");
   const lastSendTimeRef = useRef<number>(0);
   const conversationHistoryRef = useRef<string[]>([]);
@@ -102,6 +104,7 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
     
     if (data) {
       setBreakthroughData(data);
+      setShowBreakthroughCard(true);
       options.onBreakthrough?.(data);
       
       // Format breakthrough message
@@ -123,6 +126,20 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
       });
     }
   }, [triggerBreakthrough, addMessage, options]);
+
+  // Dismiss breakthrough card
+  const dismissBreakthroughCard = useCallback(() => {
+    setShowBreakthroughCard(false);
+  }, []);
+
+  // Toggle ultra-fast mode
+  const toggleUltraFastMode = useCallback((enabled: boolean) => {
+    setUltraFastMode(enabled);
+    if (enabled) {
+      // In ultra-fast mode, force breakthrough on first response
+      fastTrackRef.current.readyForBreakthrough = true;
+    }
+  }, []);
 
   // Process transcript through AI
   const processTranscript = useCallback(
@@ -388,6 +405,8 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
     setCurrentStage("friction");
     setLastResponse(null);
     setBreakthroughData(null);
+    setShowBreakthroughCard(false);
+    setUltraFastMode(false);
   }, []);
 
   // Accumulate transcript and auto-send periodically
@@ -450,6 +469,8 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
     currentStage,
     lastResponse,
     breakthroughData,
+    showBreakthroughCard,
+    ultraFastMode,
     questionCount: fastTrackRef.current.questionsAsked,
     maxQuestions: MAX_QUESTIONS,
     detectedPatterns: patternsRef.current,
@@ -460,5 +481,7 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
     dismissQuestion,
     skipToBreakthrough,
     resetSession,
+    dismissBreakthroughCard,
+    toggleUltraFastMode,
   };
 }
