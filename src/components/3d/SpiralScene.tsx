@@ -51,15 +51,15 @@ function SpiralEntities() {
     });
   }, []);
   
-  // Initialize physics worker
+  // Initialize physics worker with optimized config
   const { state: workerState } = usePhysicsWorker(entities, connections, {
     onPositionsUpdate: handlePositionsUpdate,
     autoUpdate: true,
     config: {
-      iterations: 50,
+      iterations: 25, // Reduced from 50 for better performance
       repulsionStrength: 0.8,
       attractionStrength: 0.05,
-      damping: 0.9,
+      damping: 0.92, // Slightly higher damping = fewer updates needed
     },
   });
   
@@ -273,36 +273,34 @@ function SceneContent() {
       <pointLight position={[10, 10, 10]} intensity={1} />
       <pointLight position={[-10, -10, -10]} intensity={0.5} color="#8b5cf6" />
       
-      {/* Environment */}
+      {/* Environment - reduced for performance */}
       <Stars
-        radius={100}
-        depth={50}
-        count={2000}
-        factor={4}
+        radius={80}
+        depth={40}
+        count={800}
+        factor={3}
         saturation={0}
         fade
-        speed={0.5}
+        speed={0.2}
       />
       
-      {/* Spiral center indicator */}
+      {/* Spiral center indicator - simplified geometry */}
       <mesh position={[0, 0, 0]}>
-        <torusGeometry args={[0.5, 0.02, 16, 100]} />
-        <meshStandardMaterial
+        <torusGeometry args={[0.5, 0.02, 8, 48]} />
+        <meshBasicMaterial
           color="#6366f1"
-          emissive="#6366f1"
-          emissiveIntensity={0.5}
           transparent
           opacity={0.6}
         />
       </mesh>
       
-      {/* Ground plane hint */}
+      {/* Ground plane hint - simplified */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-        <ringGeometry args={[0.5, 5, 64]} />
+        <ringGeometry args={[0.5, 5, 32]} />
         <meshBasicMaterial
           color="#1e1b4b"
           transparent
-          opacity={0.3}
+          opacity={0.2}
           side={2}
         />
       </mesh>
@@ -327,10 +325,13 @@ function SceneContent() {
 
 export function SpiralScene() {
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full gpu-accelerated">
       <Canvas
         camera={{ position: [5, 3, 5], fov: 60 }}
         style={{ background: "transparent" }}
+        dpr={[1, 1.5]} // Limit pixel ratio for performance
+        performance={{ min: 0.5 }} // Allow quality reduction
+        frameloop="demand" // Only render when needed
       >
         <Suspense fallback={null}>
           <SceneContent />

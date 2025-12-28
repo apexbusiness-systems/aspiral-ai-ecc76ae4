@@ -94,27 +94,27 @@ export function AdaptiveEntity({
     
     const time = state.clock.elapsedTime;
     
-    // Scale animation
+    // Simplified scale animation
     const targetScale = appeared ? 1 : 0;
     const currentScale = meshRef.current.scale.x;
-    const newScale = currentScale + (targetScale - currentScale) * 0.1;
+    const newScale = currentScale + (targetScale - currentScale) * 0.15;
     
-    // Hover/pulse effects
-    const pulseAmount = visualConfig.pulse ? Math.sin(time * 3) * 0.08 : Math.sin(time * 2) * 0.03;
-    const hoverScale = hovered ? 1.15 : 1;
+    // Simplified hover/pulse - reduced calculations
+    const pulseAmount = hovered ? Math.sin(time * 3) * 0.05 : 0;
+    const hoverScale = hovered ? 1.1 : 1;
     
     meshRef.current.scale.setScalar(newScale * hoverScale * (1 + pulseAmount));
-    meshRef.current.rotation.y += 0.002;
+    // Removed rotation for performance
   });
 
   if (!isVisible) return null;
 
   return (
     <Float
-      speed={2}
-      rotationIntensity={0.2}
-      floatIntensity={0.3}
-      floatingRange={[-0.05, 0.05]}
+      speed={1.5}
+      rotationIntensity={0.1}
+      floatIntensity={0.2}
+      floatingRange={[-0.03, 0.03]}
     >
       <group ref={groupRef} position={position}>
         {/* Main mesh */}
@@ -129,37 +129,32 @@ export function AdaptiveEntity({
           scale={0}
         >
           <EntityGeometry type={visualConfig.geometry} size={baseSize} />
-          <meshStandardMaterial
+          <meshBasicMaterial
             color={color}
-            emissive={color}
-            emissiveIntensity={hovered ? 0.9 : visualConfig.glow ? 0.5 : 0.3}
             transparent
-            opacity={0.9}
-            roughness={0.2}
-            metalness={0.3}
-            wireframe={visualConfig.wireframe}
+            opacity={hovered ? 1 : 0.85}
           />
         </mesh>
         
-        {/* Glow effect */}
-        {visualConfig.glow && (
-          <mesh scale={appeared ? 1.4 : 0}>
+        {/* Simplified glow - only on hover */}
+        {hovered && (
+          <mesh scale={1.3}>
             <EntityGeometry type={visualConfig.geometry} size={baseSize} />
             <meshBasicMaterial
               color={color}
               transparent
-              opacity={hovered ? 0.2 : 0.1}
+              opacity={0.15}
             />
           </mesh>
         )}
         
-        {/* Subtle indicator ring (always visible) */}
+        {/* Ground indicator - simplified */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -baseSize - 0.1, 0]}>
-          <ringGeometry args={[baseSize * 0.8, baseSize * 1, 32]} />
+          <ringGeometry args={[baseSize * 0.8, baseSize * 1, 16]} />
           <meshBasicMaterial
             color={color}
             transparent
-            opacity={hovered ? 0.4 : 0.15}
+            opacity={hovered ? 0.3 : 0.1}
           />
         </mesh>
         
