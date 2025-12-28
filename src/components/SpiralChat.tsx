@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Send, Maximize2, Minimize2, Sparkles, Cog, Droplets, Zap, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,11 +15,13 @@ import { UltraFastToggle } from "@/components/UltraFastToggle";
 import { LoadingState } from "@/components/LoadingState";
 import { FloatingMenuButton, MainMenu, QuickActionsBar, SettingsPanel, KeyboardShortcutsModal } from "@/components/menu";
 import { CinematicPlayer } from "@/components/cinematics/CinematicPlayer";
+import { FilmGrainCSS } from "@/components/effects/FilmGrainOverlay";
+import { EntityCardList } from "@/components/EntityCard";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useSpiralAI } from "@/hooks/useSpiralAI";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useKeyboardShortcuts, ASPIRAL_SHORTCUTS } from "@/hooks/useKeyboardShortcuts";
-import type { EntityType } from "@/lib/types";
+import type { EntityType, Entity } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { OmniLinkAdapter } from "@/integrations/omnilink";
 
@@ -331,11 +333,19 @@ export function SpiralChat() {
   useKeyboardShortcuts(shortcuts);
 
   const entityCount = currentSession?.entities?.length || 0;
+  const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>();
+
+  const handleEntityClick = useCallback((entity: Entity) => {
+    setSelectedEntityId((prev) => prev === entity.id ? undefined : entity.id);
+  }, []);
 
   const hasActiveHeader = sessionState !== "idle";
 
   return (
-    <div className={cn("flex flex-col lg:flex-row", hasActiveHeader ? "h-[calc(100vh-73px-52px)] mt-[52px]" : "h-[calc(100vh-73px)]")}>
+    <LayoutGroup>
+    <div className={cn("flex flex-col lg:flex-row relative", hasActiveHeader ? "h-[calc(100vh-73px-52px)] mt-[52px]" : "h-[calc(100vh-73px)]")}>
+      {/* Phase 4: Film Grain Overlay for Cinematic Polish */}
+      <FilmGrainCSS intensity={0.08} />
       {/* Floating Menu Button */}
       <FloatingMenuButton
         sessionState={sessionState}
@@ -553,6 +563,20 @@ export function SpiralChat() {
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
+            
+            {/* Phase 4: Entity Cards with Layout Morphing */}
+            {currentSession?.entities && currentSession.entities.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-border/30">
+                <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
+                  Discovered Elements
+                </h4>
+                <EntityCardList
+                  entities={currentSession.entities}
+                  selectedId={selectedEntityId}
+                  onEntityClick={handleEntityClick}
+                />
+              </div>
+            )}
           </div>
         </ScrollArea>
 
@@ -600,5 +624,6 @@ export function SpiralChat() {
         </div>
       </div>
     </div>
+    </LayoutGroup>
   );
 }
