@@ -1,4 +1,4 @@
-import { useMemo, Suspense } from "react";
+import { useMemo, Suspense, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { EntityShape } from "./EntityShape";
@@ -7,6 +7,7 @@ import { GrindingGears } from "./GrindingGears";
 import { GreaseEffect } from "./GreaseEffect";
 import { BreakthroughEffect } from "./BreakthroughEffect";
 import { useSessionStore } from "@/stores/sessionStore";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 import type { Entity } from "@/lib/types";
 
 function SpiralEntities() {
@@ -85,6 +86,57 @@ function FrictionEffects() {
     hideFriction,
   } = useSessionStore();
 
+  const {
+    startGrinding,
+    stopGrinding,
+    playGreaseDrip,
+    playGreaseLand,
+    playBreakthrough,
+  } = useSoundEffects({ enabled: true, volume: 0.5 });
+
+  const wasGrindingRef = useRef(false);
+  const wasApplyingGreaseRef = useRef(false);
+  const wasBreakthroughRef = useRef(false);
+
+  // Handle grinding sound
+  useEffect(() => {
+    const isGrinding = !!activeFriction && !isApplyingGrease;
+    
+    if (isGrinding && !wasGrindingRef.current) {
+      startGrinding(activeFriction?.intensity || 0.7);
+    } else if (!isGrinding && wasGrindingRef.current) {
+      stopGrinding();
+    }
+    
+    wasGrindingRef.current = isGrinding;
+  }, [activeFriction, isApplyingGrease, startGrinding, stopGrinding]);
+
+  // Handle grease sound
+  useEffect(() => {
+    if (isApplyingGrease && !wasApplyingGreaseRef.current) {
+      // Play drip sounds staggered
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => playGreaseDrip(greaseIsCorrect), i * 150);
+      }
+    }
+    wasApplyingGreaseRef.current = isApplyingGrease;
+  }, [isApplyingGrease, greaseIsCorrect, playGreaseDrip]);
+
+  // Handle breakthrough sound
+  useEffect(() => {
+    if (isBreakthroughActive && !wasBreakthroughRef.current) {
+      playBreakthrough();
+    }
+    wasBreakthroughRef.current = isBreakthroughActive;
+  }, [isBreakthroughActive, playBreakthrough]);
+
+  const handleGreaseComplete = () => {
+    playGreaseLand(greaseIsCorrect);
+    if (greaseIsCorrect) {
+      hideFriction();
+    }
+  };
+
   return (
     <>
       {/* Grinding Gears */}
@@ -101,11 +153,7 @@ function FrictionEffects() {
         isActive={isApplyingGrease}
         isCorrect={greaseIsCorrect}
         position={[0, 1, 0]}
-        onComplete={() => {
-          if (greaseIsCorrect) {
-            hideFriction();
-          }
-        }}
+        onComplete={handleGreaseComplete}
       />
 
       {/* Breakthrough Explosion */}
