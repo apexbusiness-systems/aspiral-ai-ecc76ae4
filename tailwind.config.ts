@@ -14,8 +14,18 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Space Grotesk", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        sans: ["DM Sans", "system-ui", "sans-serif"],
+        display: ["Inter", "system-ui", "sans-serif"],
+        question: ["Fraunces", "Georgia", "serif"],
+      },
+      fontSize: {
+        "fluid-xs": "var(--text-xs)",
+        "fluid-sm": "var(--text-sm)",
+        "fluid-base": "var(--text-base)",
+        "fluid-lg": "var(--text-lg)",
+        "fluid-xl": "var(--text-xl)",
+        "fluid-2xl": "var(--text-2xl)",
+        "fluid-3xl": "var(--text-3xl)",
       },
       colors: {
         border: "hsl(var(--border))",
@@ -75,12 +85,25 @@ export default {
           grease: "hsl(var(--grease-color))",
           entity: "hsl(var(--entity-color))",
           connection: "hsl(var(--connection-color))",
+          accent: "hsl(var(--spiral-accent))",
+        },
+        glass: {
+          DEFAULT: "hsl(var(--glass))",
+          border: "hsl(var(--glass-border))",
+          hover: "hsl(var(--glass-hover))",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+      },
+      boxShadow: {
+        glow: "var(--shadow-glow)",
+        entity: "var(--shadow-entity)",
+        card: "var(--shadow-card)",
       },
       keyframes: {
         "accordion-down": {
@@ -107,6 +130,14 @@ export default {
           from: { transform: "rotate(0deg)" },
           to: { transform: "rotate(360deg)" },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -115,6 +146,11 @@ export default {
         "fade-up": "fade-up 0.4s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "spin-slow": "spin-slow 20s linear infinite",
+        shimmer: "shimmer 2s linear infinite",
+        float: "float 3s ease-in-out infinite",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
     },
   },

@@ -17,18 +17,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
     >
       <div
         className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+          "max-w-[85%] rounded-2xl px-5 py-3.5 text-fluid-base leading-relaxed",
           isUser
-            ? "bg-primary text-primary-foreground rounded-br-md"
-            : "glass-card text-foreground rounded-bl-md",
+            ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-br-lg shadow-lg shadow-primary/20"
+            : "glass-card text-foreground rounded-bl-lg",
           message.isStreaming && "animate-pulse"
         )}
       >
         {message.content || (
-          <div className="flex gap-1">
-            <span className="typing-dot h-2 w-2 rounded-full bg-current opacity-60" />
-            <span className="typing-dot h-2 w-2 rounded-full bg-current opacity-60" />
-            <span className="typing-dot h-2 w-2 rounded-full bg-current opacity-60" />
+          <div className="flex gap-1.5 py-1">
+            <span className="typing-dot h-2 w-2 rounded-full bg-current" />
+            <span className="typing-dot h-2 w-2 rounded-full bg-current" />
+            <span className="typing-dot h-2 w-2 rounded-full bg-current" />
           </div>
         )}
       </div>
