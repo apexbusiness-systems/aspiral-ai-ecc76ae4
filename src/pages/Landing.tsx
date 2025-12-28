@@ -18,7 +18,7 @@ const Landing = () => {
           <div className="flex items-center gap-2">
             <span className="font-display text-2xl font-bold tracking-tight">
               <span className="text-primary">a</span>
-              <span className="text-foreground">SPIRAL</span>
+              <span className="text-foreground">Spiral</span>
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
@@ -199,7 +199,7 @@ const Landing = () => {
         <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-display text-xl font-bold">
-              <span className="text-primary">a</span>SPIRAL
+              <span className="text-primary">a</span>Spiral
             </span>
             <span className="text-muted-foreground text-sm">• aspiral.icu</span>
           </div>
