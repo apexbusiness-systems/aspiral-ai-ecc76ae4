@@ -92,11 +92,19 @@ WORKFLOW:
 - Ask ONE direct question
 - Be blunt, be helpful, get to clarity FAST`;
 
-const ABSOLUTE_MAX_ENTITIES = 5;
+// Tier-based entity limits
+const ENTITY_LIMITS: Record<string, number> = {
+  free: 5,
+  creator: 7,
+  pro: 10,
+  business: 10,
+  enterprise: 10,
+};
 const MAX_QUESTIONS = 2;
 
 interface RequestBody {
   transcript: string;
+  userTier?: string;
   sessionContext?: {
     entities?: Array<{ type: string; label: string }>;
     recentQuestions?: string[];
@@ -140,9 +148,10 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { transcript, sessionContext } = body;
+    const { transcript, sessionContext, userTier = "free" } = body;
+    const maxEntities = ENTITY_LIMITS[userTier] || ENTITY_LIMITS.free;
 
-    console.log("[SPIRAL-AI] Processing transcript:", transcript.slice(0, 100));
+    console.log("[SPIRAL-AI] Processing transcript:", transcript.slice(0, 100), "tier:", userTier, "maxEntities:", maxEntities);
 
     // Build context with existing entities
     let contextInfo = "";
@@ -216,13 +225,13 @@ serve(async (req) => {
       };
     }
 
-    // HARD CAP entities at 5 - NO EXCEPTIONS
+    // HARD CAP entities by tier limit
     let entities: EntityOutput[] = Array.isArray(parsed.entities) 
-      ? parsed.entities.slice(0, ABSOLUTE_MAX_ENTITIES) 
+      ? parsed.entities.slice(0, maxEntities) 
       : [];
     
-    if (parsed.entities?.length > ABSOLUTE_MAX_ENTITIES) {
-      console.warn(`[SPIRAL-AI] ⚠️ AI tried to extract ${parsed.entities.length} entities. Capped at ${ABSOLUTE_MAX_ENTITIES}.`);
+    if (parsed.entities?.length > maxEntities) {
+      console.warn(`[SPIRAL-AI] ⚠️ AI tried to extract ${parsed.entities.length} entities. Capped at ${maxEntities}.`);
     }
 
     // Validate entity labels are short (3 words max)

@@ -2,15 +2,16 @@ import { useState, useCallback, useRef } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { createLogger } from "@/lib/logger";
 import { isUserFrustrated, wantsToSkip } from "@/lib/frustrationDetector";
-import type { EntityType, EntityMetadata } from "@/lib/types";
+import { validateCoherence, deduplicateEntities, prioritizeEntities } from "@/lib/coherenceValidator";
+import { getEntityLimit, type UserTier } from "@/lib/entityLimits";
+import type { EntityType, EntityMetadata, Entity } from "@/lib/types";
 
 const logger = createLogger("useSpiralAI");
 
 const SPIRAL_AI_URL = "https://eqtwatyodujxofrdznen.supabase.co/functions/v1/spiral-ai";
 
-// EMERGENCY LIMITS
+// LIMITS
 const MAX_QUESTIONS = 2;
-const ABSOLUTE_MAX_ENTITIES = 5;
 
 interface EntityResult {
   type: EntityType;
@@ -37,14 +38,17 @@ interface SpiralAIResponse {
 
 interface UseSpiralAIOptions {
   onEntitiesExtracted?: (entities: EntityResult[]) => void;
+  onCoherenceCheck?: (result: { valid: boolean; score: number; removed: string[] }) => void;
   onQuestion?: (question: string) => void;
   onBreakthrough?: () => void;
   onError?: (error: Error) => void;
   autoSendInterval?: number;
+  userTier?: UserTier;
 }
 
 export function useSpiralAI(options: UseSpiralAIOptions = {}) {
-  const { autoSendInterval = 10000 } = options;
+  const { autoSendInterval = 10000, userTier = "free" } = options;
+  const entityLimit = getEntityLimit(userTier);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
@@ -132,31 +136,78 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
           hasQuestion: !!data.question,
         });
 
-        // HARD CAP entities at 5 on client side too
-        const cappedEntities = data.entities.slice(0, ABSOLUTE_MAX_ENTITIES);
-        if (data.entities.length > ABSOLUTE_MAX_ENTITIES) {
-          logger.warn(`Capped entities from ${data.entities.length} to ${ABSOLUTE_MAX_ENTITIES}`);
+        // Process entities with coherence validation
+        let processedEntities = data.entities;
+        
+        // 1. Hard cap by tier limit
+        processedEntities = processedEntities.slice(0, entityLimit);
+        if (data.entities.length > entityLimit) {
+          logger.warn(`Capped entities from ${data.entities.length} to ${entityLimit}`);
         }
-
-        // Add entities to session
+        
+        // 2. Convert to Entity format for validation
+        const tempEntities: Entity[] = processedEntities.map((e, i) => ({
+          id: `temp-${i}`,
+          type: e.type,
+          label: e.label,
+          metadata: {
+            role: e.role as EntityMetadata["role"],
+            valence: e.emotionalValence,
+            importance: e.importance,
+            positionHint: e.positionHint,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+        
+        // 3. Deduplicate similar entities
+        const dedupedEntities = deduplicateEntities(tempEntities);
+        
+        // 4. Validate coherence with transcript
+        const coherenceResult = validateCoherence(dedupedEntities, transcript);
+        
+        logger.info("Coherence validation", {
+          score: coherenceResult.coherenceScore,
+          valid: coherenceResult.valid,
+          kept: coherenceResult.kept.length,
+          removed: coherenceResult.removed,
+        });
+        
+        options.onCoherenceCheck?.({
+          valid: coherenceResult.valid,
+          score: coherenceResult.coherenceScore,
+          removed: coherenceResult.removed,
+        });
+        
+        // 5. Use refined entities if coherence was low
+        const validatedEntities = coherenceResult.refinedEntities;
+        
+        // 6. Prioritize by importance
+        const finalEntities = prioritizeEntities(validatedEntities, entityLimit);
+        
         // Add entities to session with full metadata
         const createdEntityIds: string[] = [];
-        if (cappedEntities.length > 0) {
-          cappedEntities.forEach((entity) => {
+        if (finalEntities.length > 0) {
+          finalEntities.forEach((entity) => {
             const created = addEntity({
               type: entity.type,
               label: entity.label,
-              metadata: {
-                role: entity.role as EntityMetadata["role"],
-                valence: entity.emotionalValence,
-                importance: entity.importance,
-                positionHint: entity.positionHint,
-              },
+              metadata: entity.metadata,
             });
             createdEntityIds.push(created.id);
           });
 
-          options.onEntitiesExtracted?.(cappedEntities);
+          // Map back to EntityResult format for callback
+          const resultEntities: EntityResult[] = finalEntities.map(e => ({
+            type: e.type,
+            label: e.label,
+            role: e.metadata?.role,
+            emotionalValence: e.metadata?.valence,
+            importance: e.metadata?.importance,
+            positionHint: e.metadata?.positionHint,
+          }));
+          
+          options.onEntitiesExtracted?.(resultEntities);
         }
 
         // Add connections (after entities are created)

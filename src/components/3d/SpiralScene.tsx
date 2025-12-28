@@ -1,37 +1,55 @@
-import { useMemo, Suspense, useEffect, useRef } from "react";
+import { useMemo, Suspense, useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
-import { SemanticEntity } from "./SemanticEntity";
+import { AdaptiveEntity } from "./AdaptiveEntity";
 import { ConnectionLine } from "./ConnectionLine";
 import { GrindingGears } from "./GrindingGears";
 import { GreaseEffect } from "./GreaseEffect";
 import { BreakthroughEffect } from "./BreakthroughEffect";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
-import { calculateEntityPosition, getConnectionColor } from "@/lib/visualVariety";
+import { calculateOptimalLayout } from "@/lib/spatialLayout";
+import { getVisibleLimit, getStaggerDelay } from "@/lib/entityLimits";
 import type { Entity } from "@/lib/types";
 
 function SpiralEntities() {
   const currentSession = useSessionStore((state) => state.currentSession);
   
+  const [visibleEntityIds, setVisibleEntityIds] = useState<Set<string>>(new Set());
+  
   const entities = currentSession?.entities || [];
   const connections = currentSession?.connections || [];
   
-  // Calculate intelligent positions based on emotional valence and importance
+  // Calculate force-directed layout
   const entityPositions = useMemo(() => {
-    const positions = new Map<string, [number, number, number]>();
-    const total = entities.length;
+    return calculateOptimalLayout(entities, connections);
+  }, [entities, connections]);
+  
+  // Progressive disclosure - show entities over time
+  useEffect(() => {
+    if (entities.length === 0) {
+      setVisibleEntityIds(new Set());
+      return;
+    }
     
-    entities.forEach((entity, index) => {
-      const valence = entity.metadata?.valence || 0;
-      const hint = entity.metadata?.positionHint || "center";
-      
-      // Use intelligent positioning based on emotional context
-      const position = calculateEntityPosition(hint, valence, index, total);
-      positions.set(entity.id, position);
+    // Sort by importance
+    const sorted = [...entities].sort((a, b) => 
+      (b.metadata?.importance || 0.5) - (a.metadata?.importance || 0.5)
+    );
+    
+    const visibleLimit = getVisibleLimit("free"); // TODO: Get from user tier
+    
+    // Show initial entities immediately
+    const initial = new Set(sorted.slice(0, visibleLimit).map(e => e.id));
+    setVisibleEntityIds(initial);
+    
+    // Stagger remaining entities
+    sorted.slice(visibleLimit).forEach((entity, index) => {
+      const delay = getStaggerDelay(index + visibleLimit, visibleLimit);
+      setTimeout(() => {
+        setVisibleEntityIds(prev => new Set([...prev, entity.id]));
+      }, delay);
     });
-    
-    return positions;
   }, [entities]);
 
   const handleEntityClick = (entity: Entity) => {
@@ -40,37 +58,47 @@ function SpiralEntities() {
 
   return (
     <>
-      {/* Render entities with semantic visualization */}
-      {entities.map((entity) => {
+      {/* Render entities with adaptive visibility */}
+      {entities.map((entity, index) => {
         const position = entityPositions.get(entity.id);
         if (!position) return null;
         
+        const isVisible = visibleEntityIds.has(entity.id);
+        const importance = entity.metadata?.importance || 0.5;
+        
         return (
-          <SemanticEntity
+          <AdaptiveEntity
             key={entity.id}
             entity={entity}
             position={position}
+            isVisible={isVisible}
             onClick={handleEntityClick}
+            showLabel={importance > 0.7 ? "important" : "hover"}
           />
         );
       })}
       
-      {/* Render connections */}
-      {connections.map((connection) => {
-        const fromPos = entityPositions.get(connection.fromEntityId);
-        const toPos = entityPositions.get(connection.toEntityId);
-        
-        if (!fromPos || !toPos) return null;
-        
-        return (
-          <ConnectionLine
-            key={connection.id}
-            connection={connection}
-            fromPosition={fromPos}
-            toPosition={toPos}
-          />
-        );
-      })}
+      {/* Only show connections for visible entities */}
+      {connections
+        .filter(conn => 
+          visibleEntityIds.has(conn.fromEntityId) && 
+          visibleEntityIds.has(conn.toEntityId)
+        )
+        .map((connection) => {
+          const fromPos = entityPositions.get(connection.fromEntityId);
+          const toPos = entityPositions.get(connection.toEntityId);
+          
+          if (!fromPos || !toPos) return null;
+          
+          return (
+            <ConnectionLine
+              key={connection.id}
+              connection={connection}
+              fromPosition={fromPos}
+              toPosition={toPos}
+            />
+          );
+        })}
     </>
   );
 }
