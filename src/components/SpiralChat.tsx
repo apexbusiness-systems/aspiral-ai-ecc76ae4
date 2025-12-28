@@ -188,7 +188,7 @@ export function SpiralChat() {
     <div className="flex h-[calc(100vh-73px)] flex-col lg:flex-row">
       {/* 3D Visualization Panel */}
       <div 
-        className={`relative bg-background/50 border-b lg:border-b-0 lg:border-r border-border transition-all duration-300 ${
+        className={`relative border-b lg:border-b-0 lg:border-r border-border/30 transition-all duration-500 ${
           is3DExpanded 
             ? "h-[60vh] lg:h-full lg:w-2/3" 
             : "h-48 lg:h-full lg:w-1/3"
@@ -207,7 +207,7 @@ export function SpiralChat() {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 z-10 bg-background/50 backdrop-blur-sm"
+          className="absolute top-3 right-3 z-10 glass-card rounded-xl"
           onClick={() => setIs3DExpanded(!is3DExpanded)}
         >
           {is3DExpanded ? (
@@ -218,52 +218,52 @@ export function SpiralChat() {
         </Button>
         
         {/* Entity Counter & Demo Controls */}
-        <div className="absolute bottom-2 left-2 flex flex-wrap gap-2">
+        <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
           {entityCount > 0 ? (
-            <div className="rounded-md bg-background/80 backdrop-blur-sm px-3 py-1 text-xs text-muted-foreground">
+            <div className="glass-card rounded-xl px-3 py-1.5 text-xs text-muted-foreground">
               {entityCount} {entityCount === 1 ? "entity" : "entities"}
             </div>
           ) : (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={addTestEntities}
-              className="bg-background/80 backdrop-blur-sm text-xs"
+              className="glass-card rounded-xl text-xs hover:bg-glass-hover"
             >
-              <Sparkles className="h-3 w-3 mr-1" />
-              Entities
+              <Sparkles className="h-3 w-3 mr-1.5" />
+              Add Entities
             </Button>
           )}
           
           {/* Demo buttons for friction/grease/breakthrough */}
           {!activeFriction ? (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={demoFriction}
-              className="bg-background/80 backdrop-blur-sm text-xs text-orange-400 border-orange-400/50"
+              className="glass-card rounded-xl text-xs text-warning hover:text-warning"
             >
-              <Cog className="h-3 w-3 mr-1" />
+              <Cog className="h-3 w-3 mr-1.5" />
               Friction
             </Button>
           ) : (
             <>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={demoGreaseCorrect}
-                className="bg-background/80 backdrop-blur-sm text-xs text-green-400 border-green-400/50"
+                className="glass-card rounded-xl text-xs text-accent hover:text-accent"
               >
-                <Droplets className="h-3 w-3 mr-1" />
+                <Droplets className="h-3 w-3 mr-1.5" />
                 Grease
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={demoBreakthrough}
-                className="bg-background/80 backdrop-blur-sm text-xs text-yellow-400 border-yellow-400/50"
+                className="glass-card rounded-xl text-xs text-secondary hover:text-secondary"
               >
-                <Zap className="h-3 w-3 mr-1" />
+                <Zap className="h-3 w-3 mr-1.5" />
                 Breakthrough
               </Button>
             </>
@@ -272,8 +272,8 @@ export function SpiralChat() {
         
         {/* OMNiLiNK Status */}
         {OmniLinkAdapter.isEnabled() && (
-          <div className="absolute bottom-2 right-2 rounded-md bg-emerald-500/20 backdrop-blur-sm px-2 py-1 text-xs text-emerald-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="absolute bottom-3 right-3 glass-card rounded-xl px-3 py-1.5 text-xs text-accent flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             OMNiLiNK
           </div>
         )}
@@ -285,15 +285,16 @@ export function SpiralChat() {
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="mx-auto max-w-2xl space-y-4">
             {messages.length === 0 && (
-              <div className="py-12 text-center">
-                <h2 className="text-2xl font-semibold text-gradient-spiral mb-2">
+              <div className="py-16 text-center">
+                <h2 className="font-display text-fluid-2xl font-bold text-gradient-spiral mb-3">
                   Welcome to aSpiral
                 </h2>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-muted-foreground text-fluid-base mb-6 max-w-md mx-auto">
                   Share what's on your mind. I'll help you untangle it.
                 </p>
-                <p className="text-sm text-muted-foreground/70">
-                  🎤 Tap the mic and start speaking
+                <p className="text-sm text-muted-foreground/60 flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  Tap the mic and start speaking
                 </p>
               </div>
             )}
@@ -311,10 +312,10 @@ export function SpiralChat() {
         />
 
         {/* Input Area */}
-        <div className="border-t border-border bg-card/50 p-4">
+        <div className="border-t border-border/30 glass-card rounded-none border-x-0 border-b-0 p-4">
           <div className="mx-auto max-w-2xl">
             {/* Mic Button */}
-            <div className="mb-4 flex justify-center">
+            <div className="mb-5 flex justify-center">
               <MicButton
                 isRecording={isRecording}
                 isProcessing={isAIProcessing}
@@ -324,18 +325,18 @@ export function SpiralChat() {
             </div>
 
             {/* Text Input */}
-            <form onSubmit={handleSubmit} className="flex gap-2">
+            <form onSubmit={handleSubmit} className="flex gap-3">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Or type your thoughts here..."
                 disabled={isAIProcessing || isRecording}
-                className="bg-input"
+                className="bg-input/50 border-border/50 rounded-xl h-12 text-fluid-base placeholder:text-muted-foreground/50"
               />
               <Button
                 type="submit"
                 disabled={!input.trim() || isAIProcessing}
-                className="gradient-spiral"
+                className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 rounded-xl h-12 px-5"
               >
                 <Send className="h-4 w-4" />
               </Button>

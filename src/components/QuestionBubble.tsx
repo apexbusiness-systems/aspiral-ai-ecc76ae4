@@ -43,37 +43,43 @@ export function QuestionBubble({
   if (!isVisible || !question) return null;
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 max-w-md w-full px-4">
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 max-w-lg w-full px-4">
       <div
         className={cn(
-          "relative bg-card/95 backdrop-blur-md border border-primary/30 rounded-2xl p-5",
-          "shadow-lg shadow-primary/20",
-          "animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+          "glass-card p-6",
+          "shadow-glow",
+          "animate-in fade-in-0 slide-in-from-bottom-6 duration-700"
         )}
       >
-        {/* Glow effect */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 blur-xl -z-10" />
+        {/* Ambient glow */}
+        <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary/20 via-secondary/15 to-accent/20 blur-2xl -z-10 opacity-60" />
 
         {/* Header */}
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-          <span className="text-xs font-medium text-primary uppercase tracking-wider">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="relative">
+            <Sparkles className="h-5 w-5 text-secondary" />
+            <div className="absolute inset-0 text-secondary blur-sm opacity-50">
+              <Sparkles className="h-5 w-5" />
+            </div>
+          </div>
+          <span className="text-xs font-medium text-secondary uppercase tracking-widest">
             Discovery Question
           </span>
         </div>
 
-        {/* Question text with typewriter */}
-        <p className="text-lg font-medium text-foreground leading-relaxed">
+        {/* Question text with typewriter - using warm conversational font */}
+        <p className="font-question text-xl text-foreground leading-relaxed tracking-tight">
           {displayedText}
           {isTyping && (
-            <span className="inline-block w-0.5 h-5 bg-primary ml-0.5 animate-pulse" />
+            <span className="inline-block w-0.5 h-6 bg-secondary ml-1 animate-pulse rounded-full" />
           )}
         </p>
 
         {/* Action hint */}
         {!isTyping && onAnswer && (
-          <p className="mt-4 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-            💬 Answer with your voice or type below
+          <p className="mt-5 text-sm text-muted-foreground animate-in fade-in-0 duration-500 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            Answer with your voice or type below
           </p>
         )}
       </div>
