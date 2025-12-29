@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Heart, Zap, Target } from "lucide-react";
+import aspiralLogo from "@/assets/aspiral-logo.png";
 
 const Story = () => {
   return (
@@ -19,9 +20,11 @@ const Story = () => {
             <span className="text-sm">Back to home</span>
           </Link>
           <Link to="/">
-            <span className="font-display text-xl font-bold">
-              <span className="text-primary">a</span>SPIRAL
-            </span>
+            <img 
+              src={aspiralLogo} 
+              alt="aSpiral" 
+              className="h-[2.78rem] drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)] hover:drop-shadow-[0_0_12px_hsl(var(--primary)/0.8)] transition-all duration-300" 
+            />
           </Link>
         </div>
       </header>
