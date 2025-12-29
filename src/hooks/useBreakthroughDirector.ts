@@ -16,6 +16,10 @@ interface UseBreakthroughDirectorOptions {
   onAbort?: (reason: string) => void;
   qualityTier?: QualityTier;
   reducedMotion?: boolean;
+  /** Callback to pause physics worker during breakthrough */
+  onPausePhysics?: () => void;
+  /** Callback to resume physics worker after breakthrough */
+  onResumePhysics?: () => void;
 }
 
 interface UseBreakthroughDirectorReturn {
@@ -37,6 +41,8 @@ export function useBreakthroughDirector(
     onAbort,
     qualityTier = 'mid',
     reducedMotion = prefersReducedMotion(),
+    onPausePhysics,
+    onResumePhysics,
   } = options;
   
   const directorRef = useRef<BreakthroughDirector | null>(null);
@@ -66,11 +72,18 @@ export function useBreakthroughDirector(
       },
     });
     
+    // Set physics callbacks for pausing during breakthrough
+    directorRef.current.setPhysicsCallbacks({
+      onPause: onPausePhysics,
+      onResume: onResumePhysics,
+    });
+    
     return () => {
       // Don't dispose singleton, just clear callbacks
       directorRef.current?.setCallbacks({});
+      directorRef.current?.setPhysicsCallbacks({});
     };
-  }, [onComplete, onAbort]);
+  }, [onComplete, onAbort, onPausePhysics, onResumePhysics]);
   
   const prewarm = useCallback(
     async (

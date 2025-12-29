@@ -1343,6 +1343,167 @@ export const BREAKTHROUGH_VARIANTS: BaseVariant[] = [
     },
     effects: { bloom: true, chromaticAberration: true, motionBlur: true, vignette: false },
   },
+  // ============ ADDITIONAL VARIETY VARIANTS (5 more) ============
+  {
+    id: 'echo_fade',
+    name: 'Echo Fade',
+    description: 'Ripples of understanding echo outward',
+    class: 'reveal',
+    intensity: 'low',
+    colorMood: 'dusk',
+    audioMood: 'contemplative',
+    baseDuration: 5000,
+    baseParticleCount: 700,
+    particlePattern: 'ring',
+    cameraArchetype: 'drift',
+    curveProfile: 'wave',
+    tags: ['echo', 'ripple', 'gradual'],
+    lowTierSafe: true,
+    isFallback: false,
+    mutationBounds: {
+      durationRange: [4500, 5500],
+      particleCountRange: [500, 900],
+      speedRange: [0.5, 1.0],
+      scaleRange: [0.8, 1.2],
+    },
+    baseColors: ['#c084fc', '#a855f7', '#9333ea', '#ffffff'],
+    cameraPath: {
+      from: [0, 0, 12],
+      to: [0, 0, 9],
+      fovFrom: 55,
+      fovTo: 52,
+      lookAt: 'center',
+    },
+    effects: { bloom: true, chromaticAberration: false, motionBlur: false, vignette: true },
+  },
+  {
+    id: 'gravity_shift',
+    name: 'Gravity Shift',
+    description: 'The center of gravity moves to a new place',
+    class: 'reframe',
+    intensity: 'high',
+    colorMood: 'cosmic',
+    audioMood: 'dramatic',
+    baseDuration: 4000,
+    baseParticleCount: 1300,
+    particlePattern: 'implosion',
+    cameraArchetype: 'pivot',
+    curveProfile: 'bounce',
+    tags: ['gravity', 'shift', 'dramatic'],
+    lowTierSafe: false,
+    isFallback: false,
+    mutationBounds: {
+      durationRange: [3500, 4500],
+      particleCountRange: [1000, 1600],
+      speedRange: [1.0, 1.6],
+      scaleRange: [1.0, 1.5],
+    },
+    baseColors: ['#6d28d9', '#7c3aed', '#8b5cf6', '#ffffff'],
+    cameraPath: {
+      from: [5, 5, 12],
+      to: [-5, -5, 8],
+      fovFrom: 60,
+      fovTo: 55,
+      lookAt: 'center',
+    },
+    effects: { bloom: true, chromaticAberration: true, motionBlur: true, vignette: false },
+  },
+  {
+    id: 'root_ground',
+    name: 'Root Ground',
+    description: 'Deep roots anchor into solid ground',
+    class: 'boundary',
+    intensity: 'medium',
+    colorMood: 'nature',
+    audioMood: 'serene',
+    baseDuration: 5500,
+    baseParticleCount: 900,
+    particlePattern: 'rain',
+    cameraArchetype: 'crane',
+    curveProfile: 'ease',
+    tags: ['grounding', 'roots', 'stability'],
+    lowTierSafe: true,
+    isFallback: false,
+    mutationBounds: {
+      durationRange: [5000, 6000],
+      particleCountRange: [700, 1100],
+      speedRange: [0.6, 1.1],
+      scaleRange: [0.9, 1.3],
+    },
+    baseColors: ['#15803d', '#166534', '#14532d', '#86efac'],
+    cameraPath: {
+      from: [0, 8, 12],
+      to: [0, -2, 8],
+      fovFrom: 60,
+      fovTo: 52,
+      lookAt: 'center',
+    },
+    effects: { bloom: true, chromaticAberration: false, motionBlur: false, vignette: true },
+  },
+  {
+    id: 'phoenix_rise',
+    name: 'Phoenix Rise',
+    description: 'From ashes, renewed strength emerges',
+    class: 'courage',
+    intensity: 'extreme',
+    colorMood: 'warm',
+    audioMood: 'triumphant',
+    baseDuration: 4500,
+    baseParticleCount: 2200,
+    particlePattern: 'fountain',
+    cameraArchetype: 'crane',
+    curveProfile: 'pulse',
+    tags: ['rebirth', 'phoenix', 'transformation'],
+    lowTierSafe: false,
+    isFallback: false,
+    mutationBounds: {
+      durationRange: [4000, 5500],
+      particleCountRange: [1800, 2600],
+      speedRange: [1.2, 1.9],
+      scaleRange: [1.2, 1.8],
+    },
+    baseColors: ['#dc2626', '#ea580c', '#f59e0b', '#fef3c7'],
+    cameraPath: {
+      from: [0, -12, 15],
+      to: [0, 10, 6],
+      fovFrom: 70,
+      fovTo: 50,
+      lookAt: 'center',
+    },
+    effects: { bloom: true, chromaticAberration: true, motionBlur: true, vignette: false },
+  },
+  {
+    id: 'compass_point',
+    name: 'Compass Point',
+    description: 'The needle settles on true north',
+    class: 'choice',
+    intensity: 'low',
+    colorMood: 'monochrome',
+    audioMood: 'minimal',
+    baseDuration: 4000,
+    baseParticleCount: 500,
+    particlePattern: 'streak',
+    cameraArchetype: 'dolly',
+    curveProfile: 'linear',
+    tags: ['direction', 'compass', 'certainty'],
+    lowTierSafe: true,
+    isFallback: true,
+    mutationBounds: {
+      durationRange: [3500, 4500],
+      particleCountRange: [350, 650],
+      speedRange: [0.7, 1.2],
+      scaleRange: [0.8, 1.1],
+    },
+    baseColors: ['#fafafa', '#d4d4d4', '#a3a3a3', '#525252'],
+    cameraPath: {
+      from: [0, 0, 14],
+      to: [0, 0, 7],
+      fovFrom: 58,
+      fovTo: 50,
+      lookAt: 'center',
+    },
+    effects: { bloom: false, chromaticAberration: false, motionBlur: false, vignette: true },
+  },
 ];
 
 // ============================================================================
@@ -1404,6 +1565,70 @@ function seededRandom(seed: number): () => number {
 }
 
 /**
+ * Convert hex to HSL
+ */
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return { h: 0, s: 0, l: 100 };
+  
+  const r = parseInt(result[1], 16) / 255;
+  const g = parseInt(result[2], 16) / 255;
+  const b = parseInt(result[3], 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+/**
+ * Convert HSL to hex
+ */
+function hslToHex(h: number, s: number, l: number): string {
+  h = ((h % 360) + 360) % 360;
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+  
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = l - c / 2;
+  
+  let r = 0, g = 0, b = 0;
+  
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else { r = c; b = x; }
+  
+  const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+/**
+ * Rotate hue of a hex color
+ */
+function rotateHue(hex: string, degrees: number): string {
+  const { h, s, l } = hexToHsl(hex);
+  return hslToHex(h + degrees, s, l);
+}
+
+/**
  * Apply mutation to a base variant
  */
 export function mutateVariant(variant: BaseVariant, seed: number): MutatedVariant {
@@ -1442,12 +1667,10 @@ export function mutateVariant(variant: BaseVariant, seed: number): MutatedVarian
   const paletteIndex = Math.floor(mutation.paletteSeed * colorPalettes.length);
   const selectedPalette = colorPalettes[paletteIndex] || variant.baseColors;
   
-  // Apply slight hue shift based on seed
-  const hueShift = (rng() - 0.5) * 20; // ±10 degrees
+  // Apply hue shift based on seed for variety
+  const hueShift = (rng() - 0.5) * 30; // ±15 degrees
   const finalColors = selectedPalette.map((color) => {
-    // Simple hue rotation approximation (for hex colors)
-    // In production, use proper HSL conversion
-    return color; // Keep original for simplicity, real impl would rotate hue
+    return rotateHue(color, hueShift);
   });
   
   return {
