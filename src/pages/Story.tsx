@@ -50,7 +50,7 @@ const Story = () => {
                 <h2 className="font-display text-xl font-semibold m-0">The Spiral</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed m-0">
-                I'm JR. I was spiralling. Not the casual kind—the kind where your thoughts 
+                I'm JR. I was spiraling. Not the casual kind—the kind where your thoughts 
                 loop endlessly, where every solution creates three new problems, where clarity 
                 feels impossible.
               </p>
@@ -117,7 +117,7 @@ const Story = () => {
               <p className="text-muted-foreground leading-relaxed mt-4 m-0">
                 <span className="text-primary">Friction</span> is what's blocking you. {" "}
                 <span className="text-secondary">Grease</span> is what unblocks it. {" "}
-                <span className="text-accent">Insight</span> is what emerges when you stop spiralling 
+                <span className="text-accent">Insight</span> is what emerges when you stop spiraling 
                 and start aspiring.
               </p>
             </section>
@@ -131,7 +131,7 @@ const Story = () => {
                 who needs it.
               </p>
               <p className="text-foreground font-medium">
-                If you're spiralling right now—I see you. I was you. 
+                If you're spiraling right now—I see you. I was you. 
                 Let's find your breakthrough together.
               </p>
             </section>

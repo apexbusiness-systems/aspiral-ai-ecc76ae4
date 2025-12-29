@@ -43,7 +43,7 @@ const Landing = () => {
           <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
             From{" "}
             <span className="text-primary relative">
-              Spiralling
+              Spiraling
               <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 8" preserveAspectRatio="none">
                 <path d="M0,4 Q50,8 100,4 T200,4" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary/50" />
               </svg>
@@ -154,7 +154,7 @@ const Landing = () => {
 
             <div className="space-y-6 text-muted-foreground leading-relaxed">
               <p className="text-lg">
-                I'm <span className="text-foreground font-medium">JR</span>. I was spiralling from trauma.
+                I'm <span className="text-foreground font-medium">JR</span>. I was spiraling from trauma.
                 <br />
                 My coping mechanism? Building things.
               </p>
