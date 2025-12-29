@@ -208,10 +208,12 @@ const Landing = () => {
       {/* Footer */}
       <footer className="relative z-10 border-t border-border/20 py-10 px-6">
         <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-display text-xl font-bold">
-              <span className="text-primary">a</span>Spiral
-            </span>
+          <div className="flex items-center gap-3">
+            <img 
+              src={aspiralLogo} 
+              alt="aSpiral" 
+              className="h-8 drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]" 
+            />
             <span className="text-muted-foreground text-sm">• aspiral.icu</span>
           </div>
           <div className="text-muted-foreground/60 text-sm text-center md:text-right">
