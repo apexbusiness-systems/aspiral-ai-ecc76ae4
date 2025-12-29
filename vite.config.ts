@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icons/icon-512.svg"],
+      includeAssets: ["icons/aspiral-icon.svg"],
       manifest: {
         name: "aSpiral - Transform Confusion into Clarity",
         short_name: "aSpiral",
@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         icons: [
           {
-            src: "/icons/icon-512.svg",
+            src: "/icons/aspiral-icon.svg",
             sizes: "512x512",
             type: "image/svg+xml",
             purpose: "any maskable"
