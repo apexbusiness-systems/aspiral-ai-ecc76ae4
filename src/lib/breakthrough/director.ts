@@ -37,6 +37,9 @@ const PREWARM_TIMEOUT_MS = 2000;
 /** Settle duration after main animation */
 const SETTLE_DURATION_MS = 300;
 
+/** WebGL context lost handler callback */
+type WebGLContextLostCallback = () => void;
+
 // ============================================================================
 // DIRECTOR CLASS
 // ============================================================================
@@ -69,6 +72,14 @@ export class BreakthroughDirector {
     ready: false,
   };
   
+  // WebGL context loss handling
+  private webglContextLostHandler: WebGLContextLostCallback | null = null;
+  private webglContextRestoredHandler: (() => void) | null = null;
+  
+  // Physics worker pause callback
+  private pausePhysicsCallback: (() => void) | null = null;
+  private resumePhysicsCallback: (() => void) | null = null;
+  
   // =========================================================================
   // PUBLIC API
   // =========================================================================
@@ -91,6 +102,35 @@ export class BreakthroughDirector {
     this.onCompleteCallback = options.onComplete || null;
     this.onAbortCallback = options.onAbort || null;
     this.onPhaseChangeCallback = options.onPhaseChange || null;
+  }
+  
+  /**
+   * Set physics worker callbacks for pause/resume during breakthrough
+   */
+  setPhysicsCallbacks(options: {
+    onPause?: () => void;
+    onResume?: () => void;
+  }): void {
+    this.pausePhysicsCallback = options.onPause || null;
+    this.resumePhysicsCallback = options.onResume || null;
+  }
+  
+  /**
+   * Handle WebGL context loss gracefully
+   */
+  handleWebGLContextLost(): void {
+    logger.warn('WebGL context lost during breakthrough');
+    this.trackEvent('error');
+    this.state.error = 'webgl_context_lost';
+    this.triggerSafeMode();
+  }
+  
+  /**
+   * Handle WebGL context restored
+   */
+  handleWebGLContextRestored(): void {
+    logger.info('WebGL context restored');
+    // Don't restart the effect, just log it
   }
   
   /**
@@ -176,6 +216,9 @@ export class BreakthroughDirector {
     this.state.error = null;
     
     this.setPhase('playing');
+    
+    // Pause physics worker during breakthrough to prevent FPS spikes
+    this.pausePhysicsCallback?.();
     
     // Track analytics
     this.trackEvent('started');
@@ -276,6 +319,10 @@ export class BreakthroughDirector {
     this.onCompleteCallback = null;
     this.onAbortCallback = null;
     this.onPhaseChangeCallback = null;
+    this.pausePhysicsCallback = null;
+    this.resumePhysicsCallback = null;
+    this.webglContextLostHandler = null;
+    this.webglContextRestoredHandler = null;
     this.prewarmedResources = { variant: null, ready: false };
   }
   
@@ -365,6 +412,9 @@ export class BreakthroughDirector {
     } else {
       this.onAbortCallback?.(reason || 'unknown');
     }
+    
+    // Resume physics worker after breakthrough
+    this.resumePhysicsCallback?.();
     
     // Cleanup
     this.cleanup();
