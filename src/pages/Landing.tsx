@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Play, Mic, Eye, MessageCircle, Sparkles, ArrowRight, X } from "lucide-react";
 import demoVideo from "@/assets/demo-video.mp4";
+import aspiralLogo from "@/assets/aspiral-logo.png";
 
 const Landing = () => {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
@@ -20,10 +21,7 @@ const Landing = () => {
       <header className="relative z-10 border-b border-border/30 backdrop-blur-sm">
         <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-display text-2xl font-bold tracking-tight">
-              <span className="text-primary">a</span>
-              <span className="text-foreground">Spiral</span>
-            </span>
+            <img src={aspiralLogo} alt="aSpiral" className="h-8" />
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How it works</a>
