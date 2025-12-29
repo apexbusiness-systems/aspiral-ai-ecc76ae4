@@ -377,3 +377,20 @@ export function isLowPowerMode(): boolean {
   }
   return false;
 }
+
+/**
+ * Detect device quality tier for breakthrough system
+ */
+export function detectDeviceTier(): 'low' | 'mid' | 'high' {
+  const capabilities = detectDeviceCapabilities();
+  
+  if (capabilities.gpuTier >= 3 && capabilities.deviceType === 'desktop') {
+    return 'high';
+  }
+  
+  if (capabilities.gpuTier >= 2) {
+    return 'mid';
+  }
+  
+  return 'low';
+}

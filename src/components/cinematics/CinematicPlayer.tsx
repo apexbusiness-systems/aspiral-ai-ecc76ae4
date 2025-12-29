@@ -2,10 +2,11 @@
  * Cinematic Player - Main Orchestrator
  * Handles variant selection, audio, analytics, and skip functionality
  * Includes fallback timeout for WebGL failures
+ * Integrated with Breakthrough V2 Director for enhanced variety and reliability
  */
 
-import { useState, useEffect, useRef, Suspense, Component, ReactNode } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useState, useEffect, useRef, Suspense, Component, ReactNode, useCallback } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
@@ -16,11 +17,17 @@ import { ParticleExplosion } from './ParticleExplosion';
 import { PortalReveal } from './PortalReveal';
 import { MatrixDecode } from './MatrixDecode';
 import { SpaceWarp } from './SpaceWarp';
+import { BreakthroughFallback } from './BreakthroughFallback';
+
+// Breakthrough V2 System
+import { useBreakthroughDirector } from '@/hooks/useBreakthroughDirector';
+import { isBreakthroughV2Enabled } from '@/lib/breakthrough/types';
+import type { MutatedVariant, QualityTier } from '@/lib/breakthrough/types';
 
 // Utilities
 import { getCinematicConfig, getRandomVariant } from '@/lib/cinematics/configs';
 import { AudioManager } from '@/lib/cinematics/AudioManager';
-import { AdaptiveQuality, prefersReducedMotion, calculateParticleCount } from '@/lib/performance/optimizer';
+import { AdaptiveQuality, prefersReducedMotion, calculateParticleCount, detectDeviceTier } from '@/lib/performance/optimizer';
 import { analytics } from '@/lib/analytics';
 import type { CinematicPlayerProps, CinematicVariant } from '@/lib/cinematics/types';
 
@@ -52,6 +59,30 @@ class WebGLErrorBoundary extends Component<{ children: ReactNode; onError: () =>
 // Maximum cinematic duration before forcing completion (fallback)
 const MAX_CINEMATIC_DURATION_MS = 15000; // 15 seconds
 
+// FPS Reporter component for V2 director integration
+function FPSReporter({ onFPS }: { onFPS: (fps: number) => void }) {
+  const lastTime = useRef(performance.now());
+  
+  useFrame(() => {
+    const now = performance.now();
+    const delta = now - lastTime.current;
+    lastTime.current = now;
+    
+    if (delta > 0) {
+      const fps = 1000 / delta;
+      onFPS(fps);
+    }
+  });
+  
+  return null;
+}
+
+// Extended props interface for V2
+interface CinematicPlayerPropsV2 extends CinematicPlayerProps {
+  sessionEntities?: Array<{ type: string; label: string; metadata?: { valence?: number } }>;
+  breakthroughType?: string;
+}
+
 export function CinematicPlayer({
   variant,
   onComplete,
@@ -62,8 +93,34 @@ export function CinematicPlayer({
   enableAnalytics = true,
   reducedMotion = false,
   className = '',
-}: CinematicPlayerProps) {
-  // Select variant
+  sessionEntities = [],
+  breakthroughType,
+}: CinematicPlayerPropsV2) {
+  // Check if V2 is enabled
+  const useV2 = isBreakthroughV2Enabled();
+  const deviceTier = detectDeviceTier();
+  
+  // V2 Director integration
+  const {
+    phase: directorPhase,
+    variant: v2Variant,
+    isSafeMode,
+    prewarm,
+    play: playDirector,
+    complete: completeDirector,
+    abort: abortDirector,
+    reportFPS,
+  } = useBreakthroughDirector({
+    onComplete,
+    onAbort: (reason) => {
+      console.log('[CinematicPlayer] V2 aborted:', reason);
+      onSkip?.();
+    },
+    qualityTier: deviceTier,
+    reducedMotion,
+  });
+
+  // Select variant (V1 fallback)
   const [selectedVariant] = useState<CinematicVariant>(variant || getRandomVariant());
   const config = getCinematicConfig(selectedVariant);
 
@@ -86,6 +143,7 @@ export function CinematicPlayer({
   const [hasCompleted, setHasCompleted] = useState(false);
   const startTimeRef = useRef<number>(0);
   const fallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [v2Initialized, setV2Initialized] = useState(false);
 
   // Check for reduced motion preference
   const shouldReduceMotion = reducedMotion || prefersReducedMotion();
@@ -132,8 +190,28 @@ export function CinematicPlayer({
     handleComplete();
   }).current;
 
-  // Initialize
+  // Initialize V2 if enabled
   useEffect(() => {
+    if (useV2 && !v2Initialized) {
+      setV2Initialized(true);
+      prewarm(sessionEntities, breakthroughType)
+        .then((variant) => {
+          console.log('[CinematicPlayer] V2 prewarmed:', variant.id);
+          if (autoPlay) {
+            playDirector(variant);
+          }
+        })
+        .catch((err) => {
+          console.warn('[CinematicPlayer] V2 prewarm failed:', err);
+        });
+    }
+  }, [useV2, v2Initialized, sessionEntities, breakthroughType, autoPlay, prewarm, playDirector]);
+
+  // Initialize (V1 mode)
+  useEffect(() => {
+    // Skip V1 init if V2 is enabled
+    if (useV2) return;
+    
     // Create adaptive quality manager
     adaptiveQuality.current = new AdaptiveQuality(setQualitySettings);
     adaptiveQuality.current.start();
@@ -171,7 +249,7 @@ export function CinematicPlayer({
         clearTimeout(fallbackTimeoutRef.current);
       }
     };
-  }, [selectedVariant, config, autoPlay, enableAnalytics, onStart, handleComplete]);
+  }, [useV2, selectedVariant, config, autoPlay, enableAnalytics, onStart, handleComplete]);
 
   // Update particle count based on quality
   useEffect(() => {
@@ -310,8 +388,22 @@ export function CinematicPlayer({
           <Suspense fallback={null}>
             <color attach="background" args={['#000000']} />
 
-            {/* Cinematic Variant */}
-            {isPlaying && renderVariant()}
+            {/* FPS Reporter for V2 Director */}
+            {useV2 && directorPhase === 'playing' && (
+              <FPSReporter onFPS={reportFPS} />
+            )}
+
+            {/* V2 Safe Mode Fallback */}
+            {useV2 && isSafeMode && directorPhase === 'playing' && (
+              <BreakthroughFallback 
+                onComplete={completeDirector}
+                color={v2Variant?.finalColors?.[0] || '#60a5fa'}
+              />
+            )}
+
+            {/* V2 Normal Playback or V1 Cinematic Variant */}
+            {!useV2 && isPlaying && renderVariant()}
+            {useV2 && !isSafeMode && directorPhase === 'playing' && renderVariant()}
 
             {/* Post-Processing */}
             {renderPostProcessing()}
