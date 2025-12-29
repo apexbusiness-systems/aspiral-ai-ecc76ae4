@@ -134,7 +134,7 @@ export class BreakthroughDirector {
       
       return variant;
     } catch (err) {
-      logger.error('Prewarm failed', { error: String(err) });
+      logger.error('Prewarm failed', err instanceof Error ? err : new Error(String(err)));
       this.prewarmedResources = {
         variant: selectFallbackVariant(qualityTier),
         ready: true,
@@ -440,7 +440,7 @@ export class BreakthroughDirector {
     };
     
     // Log locally
-    logger.info('Breakthrough event', event);
+    logger.info('Breakthrough event', event as unknown as Record<string, unknown>);
     
     // Send to analytics system
     try {
