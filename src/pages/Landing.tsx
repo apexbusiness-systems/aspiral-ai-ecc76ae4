@@ -247,7 +247,7 @@ const Landing = () => {
       </motion.header>
 
       {/* Hero Section - Split Layout */}
-      <section className="relative z-10 py-24 md:py-32 lg:py-40 px-6">
+      <section className="relative z-10 pt-8 md:pt-12 lg:pt-16 pb-24 md:pb-32 lg:pb-40 px-6">
         <div className="mx-auto max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: Text Content */}
