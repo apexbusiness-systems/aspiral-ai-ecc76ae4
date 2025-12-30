@@ -6,6 +6,7 @@ import { Play, Sparkles, ArrowRight } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import demoVideo from "@/assets/demo-video.mp4";
 import aspiralLogo from "@/assets/aspiral-logo.png";
+import heromark from "@/assets/aspiral-heromark.svg";
 import visualizeIcon from "@/assets/visualize-icon.png";
 import voiceIcon from "@/assets/voice-icon.png";
 import questionIcon from "@/assets/question-icon.png";
@@ -241,102 +242,127 @@ const Landing = () => {
         </div>
       </motion.header>
 
-      {/* Hero Section - Dramatic Editorial */}
-      <section className="relative z-10 py-24 md:py-40 lg:py-48 px-6">
-        <div className="mx-auto max-w-6xl">
-          <motion.div 
-            className="text-center lg:text-left lg:max-w-4xl"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Main Headline - Massive Typography */}
-            <motion.h1 
-              className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-[9rem] font-bold leading-[0.9] tracking-tight mb-8"
-              variants={fadeUpVariant}
-              custom={0}
+      {/* Hero Section - Split Layout */}
+      <section className="relative z-10 py-24 md:py-32 lg:py-40 px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left: Text Content */}
+            <motion.div 
+              className="text-center lg:text-left"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
             >
-              <span className="block">From</span>
-              <span className="block text-primary relative inline-block">
-                Spiraling
-                <motion.svg 
-                  className="absolute -bottom-2 md:-bottom-4 left-0 w-full h-3 md:h-4" 
-                  viewBox="0 0 200 12" 
-                  preserveAspectRatio="none"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
-                >
-                  <motion.path 
-                    d="M0,6 Q50,12 100,6 T200,6" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="3" 
-                    className="text-primary/60"
-                    strokeLinecap="round"
+              {/* Main Headline */}
+              <motion.h1 
+                className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-7xl xl:text-8xl font-bold leading-[0.9] tracking-tight mb-8"
+                variants={fadeUpVariant}
+                custom={0}
+              >
+                <span className="block">From</span>
+                <span className="block text-primary relative inline-block">
+                  Spiraling
+                  <motion.svg 
+                    className="absolute -bottom-2 md:-bottom-4 left-0 w-full h-3 md:h-4" 
+                    viewBox="0 0 200 12" 
+                    preserveAspectRatio="none"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
-                  />
-                </motion.svg>
-              </span>
-              <span className="block">to <span className="text-secondary">Aspiring</span></span>
-            </motion.h1>
-            
-            {/* Tagline */}
-            <motion.p 
-              className="font-question text-xl sm:text-2xl md:text-3xl text-muted-foreground mb-6 italic max-w-2xl lg:max-w-none"
-              variants={fadeUpVariant}
-              custom={0.2}
-            >
-              Voice your chaos. Visualize clarity. Get your breakthrough.
-            </motion.p>
-            
-            {/* Subtext */}
-            <motion.p 
-              className="text-base md:text-lg text-muted-foreground/80 mb-12 max-w-xl lg:max-w-2xl"
-              variants={fadeUpVariant}
-              custom={0.3}
-            >
-              Turn mental spirals into visual breakthroughs in 5 minutes.
-              <br />
-              <span className="text-foreground/70">AI-powered. Voice-first. Built during a breakdown.</span>
-            </motion.p>
-
-            {/* CTAs */}
-            <motion.div 
-              className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-8"
-              variants={fadeUpVariant}
-              custom={0.4}
-            >
-              <Link to="/app">
-                <Button 
-                  size="lg" 
-                  className="group text-lg px-10 py-7 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300"
-                >
-                  Start Your Breakthrough
-                  <Sparkles className="ml-2 h-5 w-5 group-hover:animate-pulse" />
-                </Button>
-              </Link>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-10 py-7 border-border/50 hover:bg-muted/50 hover:border-border transition-all duration-300"
-                onClick={() => setIsDemoOpen(true)}
+                  >
+                    <motion.path 
+                      d="M0,6 Q50,12 100,6 T200,6" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="3" 
+                      className="text-primary/60"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
+                    />
+                  </motion.svg>
+                </span>
+                <span className="block">to <span className="text-secondary">Aspiring</span></span>
+              </motion.h1>
+              
+              {/* Tagline */}
+              <motion.p 
+                className="font-question text-xl sm:text-2xl md:text-2xl text-muted-foreground mb-6 italic"
+                variants={fadeUpVariant}
+                custom={0.2}
               >
-                <Play className="mr-2 h-5 w-5" />
-                Watch 60s Demo
-              </Button>
+                Voice your chaos. Visualize clarity. Get your breakthrough.
+              </motion.p>
+              
+              {/* Subtext */}
+              <motion.p 
+                className="text-base md:text-lg text-muted-foreground/80 mb-10 max-w-xl mx-auto lg:mx-0"
+                variants={fadeUpVariant}
+                custom={0.3}
+              >
+                Turn mental spirals into visual breakthroughs in 5 minutes.
+                <br />
+                <span className="text-foreground/70">AI-powered. Voice-first. Built during a breakdown.</span>
+              </motion.p>
+
+              {/* CTAs */}
+              <motion.div 
+                className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-6"
+                variants={fadeUpVariant}
+                custom={0.4}
+              >
+                <Link to="/app">
+                  <Button 
+                    size="lg" 
+                    className="group text-lg px-10 py-7 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300"
+                  >
+                    Start Your Breakthrough
+                    <Sparkles className="ml-2 h-5 w-5 group-hover:animate-pulse" />
+                  </Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="text-lg px-10 py-7 border-border/50 hover:bg-muted/50 hover:border-border transition-all duration-300"
+                  onClick={() => setIsDemoOpen(true)}
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  Watch 60s Demo
+                </Button>
+              </motion.div>
+
+              <motion.p 
+                className="text-sm text-muted-foreground/60 tracking-wide"
+                variants={fadeUpVariant}
+                custom={0.5}
+              >
+                Free: 5 breakthroughs/day • No credit card • Works in browser
+              </motion.p>
             </motion.div>
 
-            <motion.p 
-              className="text-sm text-muted-foreground/60 tracking-wide"
-              variants={fadeUpVariant}
-              custom={0.5}
+            {/* Right: Heromark */}
+            <motion.div 
+              className="flex items-center justify-center lg:justify-end"
+              initial={{ opacity: 0, scale: 0.9, x: 50 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
             >
-              Free: 5 breakthroughs/day • No credit card • Works in browser
-            </motion.p>
-          </motion.div>
+              <motion.img 
+                src={heromark} 
+                alt="aSpiral Heromark" 
+                className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px] h-auto drop-shadow-[0_0_60px_hsl(var(--primary)/0.3)]"
+                animate={{ 
+                  filter: [
+                    "drop-shadow(0 0 40px hsl(var(--primary)/0.2))",
+                    "drop-shadow(0 0 80px hsl(var(--primary)/0.4))",
+                    "drop-shadow(0 0 40px hsl(var(--primary)/0.2))"
+                  ]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
+          </div>
         </div>
       </section>
 
