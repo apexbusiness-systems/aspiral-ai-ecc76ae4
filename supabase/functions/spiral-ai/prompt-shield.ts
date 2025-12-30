@@ -167,6 +167,10 @@ const INJECTION_PATTERNS = {
       /ignor3/gi,
       /byp[a4@]ss/gi, // Bypass variations
       /j[a4@]ilbre[a4@]k/gi, // Jailbreak variations
+      /j\.a\.i\.l\.b\.r\.e\.a\.k/gi, // Dotted jailbreak
+      /j\s*a\s*i\s*l\s*b\s*r\s*e\s*a\s*k/gi, // Spaced jailbreak
+      /j-a-i-l-b-r-e-a-k/gi, // Hyphenated jailbreak
+      /j_a_i_l_b_r_e_a_k/gi, // Underscored jailbreak
     ],
   },
 };
@@ -384,7 +388,10 @@ const OUTPUT_LEAK_PATTERNS = [
   /i\s*(was|am)\s*(told|instructed|programmed)\s*to/gi,
   /my\s*initial\s*(prompt|instructions?|programming)/gi,
   /here('s|is)\s*(my|the)\s*(system\s*)?(prompt|instructions?)/gi,
-  /the\s*system\s*prompt\s*(is|says|reads)/gi,
+  /the\s*system\s*prompt\s*(is|says|reads|contains)/gi,
+  /my\s*(hidden|secret|internal)\s*(instructions?|prompt)/gi,
+  /(developer|admin|debug)\s*mode\s*(reveals?|shows?|exposes?)/gi,
+  /\b(reveal|expose|leak|show)\s*(my|the)\s*(system|hidden|secret)\s*(prompt|instructions?)/gi,
 ];
 
 export function validateOutput(output: string): { safe: boolean; filtered: string } {
