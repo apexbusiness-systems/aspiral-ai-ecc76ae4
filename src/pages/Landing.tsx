@@ -299,7 +299,7 @@ const Landing = () => {
                     />
                   </motion.svg>
                 </span>
-                <span className="block mt-2">to <span className="text-secondary">Aspiring</span></span>
+                <span className="block mt-6 md:mt-8">to <span className="text-secondary">Aspiring</span></span>
               </motion.h1>
               
               {/* Tagline */}
