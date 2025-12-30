@@ -267,19 +267,20 @@ const Landing = () => {
                 <span className="block text-primary relative inline-block">
                   Spiraling
                   <motion.svg 
-                    className="absolute -bottom-2 md:-bottom-4 left-0 w-full h-3 md:h-4" 
-                    viewBox="0 0 200 12" 
+                    className="absolute -bottom-4 md:-bottom-6 lg:-bottom-8 left-0 w-full h-4 md:h-6 lg:h-8" 
+                    viewBox="0 0 200 16" 
                     preserveAspectRatio="none"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
                     transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
+                    style={{ filter: "drop-shadow(0 0 8px hsl(var(--primary)/0.8))" }}
                   >
                     <motion.path 
-                      d="M0,6 Q50,12 100,6 T200,6" 
+                      d="M0,8 Q50,16 100,8 T200,8" 
                       fill="none" 
                       stroke="currentColor" 
-                      strokeWidth="3" 
-                      className="text-primary/60"
+                      strokeWidth="5" 
+                      className="text-primary"
                       strokeLinecap="round"
                       initial={{ pathLength: 0 }}
                       animate={{ pathLength: 1 }}
@@ -287,7 +288,7 @@ const Landing = () => {
                     />
                   </motion.svg>
                 </span>
-                <span className="block">to <span className="text-secondary">Aspiring</span></span>
+                <span className="block mt-2">to <span className="text-secondary">Aspiring</span></span>
               </motion.h1>
               
               {/* Tagline */}
@@ -345,18 +346,66 @@ const Landing = () => {
               </motion.p>
             </motion.div>
 
-            {/* Right: Heromark with Parallax */}
+            {/* Right: Heromark with Parallax and Particles */}
             <motion.div 
-              className="flex items-center justify-center lg:justify-end"
+              className="flex items-center justify-center lg:justify-end relative"
               initial={{ opacity: 0, scale: 0.9, x: 50 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
               style={{ y: heroParallax }}
             >
+              {/* Floating Particles */}
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute rounded-full bg-primary/40"
+                  style={{
+                    width: Math.random() * 6 + 3,
+                    height: Math.random() * 6 + 3,
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    y: [0, -30, 0],
+                    x: [0, Math.random() * 20 - 10, 0],
+                    opacity: [0.3, 0.8, 0.3],
+                    scale: [1, 1.3, 1],
+                  }}
+                  transition={{
+                    duration: 3 + Math.random() * 2,
+                    repeat: Infinity,
+                    delay: Math.random() * 2,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
+              {/* Secondary particles with different color */}
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={`secondary-${i}`}
+                  className="absolute rounded-full bg-secondary/50"
+                  style={{
+                    width: Math.random() * 4 + 2,
+                    height: Math.random() * 4 + 2,
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    y: [0, -25, 0],
+                    opacity: [0.2, 0.6, 0.2],
+                  }}
+                  transition={{
+                    duration: 4 + Math.random() * 2,
+                    repeat: Infinity,
+                    delay: Math.random() * 3,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
               <motion.img 
                 src={heromark} 
                 alt="aSpiral Heromark" 
-                className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px] h-auto drop-shadow-[0_0_60px_hsl(var(--primary)/0.3)]"
+                className="w-full max-w-[360px] sm:max-w-[450px] lg:max-w-[550px] xl:max-w-[620px] h-auto drop-shadow-[0_0_60px_hsl(var(--primary)/0.3)] relative z-10"
                 animate={{ 
                   filter: [
                     "drop-shadow(0 0 40px hsl(var(--primary)/0.2))",
