@@ -539,7 +539,7 @@ const Landing = () => {
             Ready to break through?
           </h2>
           <p className="text-muted-foreground mb-10 text-lg md:text-xl">
-            Voice your chaos. Find your clarity. In 5 minutes or less.
+            Voice your chaos. Find your clarity. Just in time.
           </p>
           <Link to="/app">
             <Button 
