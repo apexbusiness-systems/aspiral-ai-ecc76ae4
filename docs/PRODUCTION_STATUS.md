@@ -1,6 +1,6 @@
 # aSpiral Production Status Report
 
-**Document Version:** 1.5
+**Document Version:** 1.6
 **Last Updated:** December 30, 2025
 **Confidential - For Investor Review**
 
@@ -161,14 +161,14 @@ aSpiral provides a unique voice-first interface where users can speak their thou
 ### AI/ML
 | Technology | Purpose |
 |------------|---------|
-| Google Gemini 2.5 Flash | Primary language model (via Lovable AI) |
+| OpenAI API | Primary language model |
 | Custom FSM | Deterministic state machine for conversation flow |
 | Pattern Detection | Behavioral analysis for fast-track breakthrough |
 
 ### Infrastructure
 | Service | Purpose |
 |---------|---------|
-| Lovable Platform | Development & Hosting |
+| IONOS.ca | Hosting & Deployment |
 | Supabase Cloud | Database & Auth |
 | PostHog | Privacy-first Analytics |
 | Capacitor | iOS/Android Bridge |
@@ -213,7 +213,7 @@ aSpiral provides a unique voice-first interface where users can speak their thou
         │
         ▼
 ┌───────────────────────────────────────────────────────────┐
-│         AI Gateway (Lovable/Gemini 2.5 Flash)             │
+│                    AI Gateway (OpenAI API)                │
 └───────────────────────────────────────────────────────────┘
 ```
 
@@ -738,7 +738,7 @@ Comprehensive device-aware rendering optimization:
 ### Technical Infrastructure Costs (Monthly)
 | Service | Current | At Scale |
 |---------|---------|----------|
-| Hosting (Lovable) | $0 | $500 |
+| Hosting (IONOS.ca) | $0 | $500 |
 | Supabase | $25 | $500 |
 | AI API calls | $100 | $5,000 |
 | Analytics | $0 | $200 |
@@ -837,3 +837,4 @@ Comprehensive device-aware rendering optimization:
 | 1.3 | Dec 29, 2025 | aSpiral Team | Added production battery tests |
 | 1.4 | Dec 30, 2025 | aSpiral Team | Added performance optimization: GPU fingerprinting, adaptive quality, O(1) FPS monitoring, battery API, WebGL recovery, analytics opt-out, Three.js 0.168.0, verification tests |
 | 1.5 | Dec 30, 2025 | aSpiral Team | Added detailed battery test results: 26/26 passed, all injection categories 100% block rate, 109,930 req/s throughput |
+| 1.6 | Dec 30, 2025 | aSpiral Team | Corrected tech stack: OpenAI API (not Gemini), IONOS.ca hosting |
