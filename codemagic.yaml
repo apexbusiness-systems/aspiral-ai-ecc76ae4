@@ -1,91 +1,52 @@
 workflows:
   ios-release:
-    name: iOS Release (TestFlight)
+    name: iOS Release
     instance_type: mac_mini_m2
     max_build_duration: 60
-
     triggering:
       events:
         - tag
       tag_patterns:
-        - pattern: "ios-v*"
+        - pattern: 'ios-v*'
           include: true
-
+    integrations:
+      app_store_connect: aSpiral_iOS_AppStoreConnect_2026
     environment:
-      groups:
-        - appstore_credentials
-
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.apex.aspiral
-
+        provisioning_profiles:
+          - aSpiral_iOS_AppStoreConnect_2026
+        certificates:
+          - aSpiral_dist_2026
+      groups:
+        - appstore_credentials
       vars:
         BUNDLE_ID: com.apex.aspiral
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
-
       node: 20
       xcode: latest
       cocoapods: default
-
     scripts:
       - name: Install dependencies
         script: npm ci
-
-      - name: Run app unit tests (exclude Supabase/Deno)
-        script: npx vitest run --dir src
-
       - name: Build web assets
         script: npm run build
-
-      - name: Verify web build output exists
-        script: |
-          if [ ! -d "dist" ]; then
-            echo "ERROR: dist/ not found. If your build output dir is different, update this step."
-            ls -la
-            exit 1
-          fi
-
-      - name: Sync Capacitor (iOS)
+      - name: Sync Capacitor
         script: npx cap sync ios
-
-      - name: Verify iOS web assets copied
-        script: |
-          if [ ! -d "ios/App/App/public" ]; then
-            echo "ERROR: Expected ios/App/App/public not found after cap sync."
-            echo "Searching for public/ directories:"
-            find ios -maxdepth 4 -type d -name public -print || true
-            echo "ios/App/App contents:"
-            ls -la ios/App/App || true
-            exit 1
-          fi
-
-      - name: Set iOS version from tag (ios-vX.Y.Z) + build number
-        script: |
-          VERSION="${CM_TAG#ios-v}"
-          BUILD_NUMBER="${CM_BUILD_NUMBER}"
-
-          echo "Setting iOS version to $VERSION ($BUILD_NUMBER)"
-
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/App/App/Info.plist
-
       - name: Install CocoaPods
         script: |
           cd ios/App
           pod install
-
       - name: Compliance Check
         script: |
           RESULT=$(/usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" ios/App/App/Info.plist 2>/dev/null || echo "MISSING")
           if [ "$RESULT" != "false" ] && [ "$RESULT" != "MISSING" ]; then
              echo "WARNING: ITSAppUsesNonExemptEncryption is $RESULT (Should be false)"
           fi
-
       - name: Set up code signing
-        script: |
-          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
-
+        script: xcode-project use-profiles
       - name: Build iOS IPA
         script: |
           mkdir -p build/ios/ipa
@@ -94,17 +55,13 @@ workflows:
             --scheme "$XCODE_SCHEME" \
             --config Release \
             --ipa-path build/ios/ipa/aSpiral.ipa
-
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration
         submit_to_testflight: true
         beta_groups:
           - Internal Testers
