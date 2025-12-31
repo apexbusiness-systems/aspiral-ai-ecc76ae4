@@ -1,26 +1,23 @@
-workflows:
-  ios-release:
-    name: iOS Release
+definitions:
+  instance_m2: &instance_m2
     instance_type: mac_mini_m2
     max_build_duration: 60
     triggering:
       events:
         - tag
       tag_patterns:
-        - pattern: 'ios-v*'
+        - pattern: "ios-v*"
           include: true
     integrations:
       app_store_connect: aSpiral_iOS_AppStoreConnect_2026
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.apex.aspiral
-        provisioning_profiles:
-          - aSpiral_iOS_AppStoreConnect_2026
-        certificates:
-          - aSpiral_dist_2026
+      <<: *node_env
+      xcode: latest
+      cocoapods: default
+
       groups:
         - appstore_credentials
+
       vars:
         BUNDLE_ID: com.apex.aspiral
         XCODE_WORKSPACE: ios/App/App.xcworkspace
@@ -65,6 +62,7 @@ workflows:
         submit_to_testflight: true
         beta_groups:
           - Internal Testers
+
       email:
         recipients:
           - michael@apexbiz.io
@@ -80,13 +78,15 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: 'android-v*'
+        - pattern: "android-v*"
           include: true
     environment:
-      android_signing:
-        - aSpiral_Android_Keystore
+      <<: *node_env
+      java: 17
+
       groups:
         - google_play_credentials
+
       vars:
         BUNDLE_ID: com.apex.aspiral
       node: 20
@@ -114,6 +114,7 @@ workflows:
           sed -i.bak "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" app/build.gradle
       - name: Build Android AAB
         script: |
+          set -e
           cd android
           ./gradlew bundleRelease
     artifacts:
@@ -124,6 +125,7 @@ workflows:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         track: internal
         submit_as_draft: false
+
       email:
         recipients:
           - michael@apexbiz.io
