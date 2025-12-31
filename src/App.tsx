@@ -2,11 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/lib/i18n/config';
+import GlobalErrorBoundary from '@/components/GlobalErrorBoundary';
 import Landing from "./pages/Landing";
 import Story from "./pages/Story";
 import Index from "./pages/Index";
@@ -26,32 +27,34 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <I18nextProvider i18n={i18n}>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/story" element={<Story />} />
-              <Route path="/steps/voice" element={<VoiceYourChaos />} />
-              <Route path="/steps/visualize" element={<WatchItVisualize />} />
-              <Route path="/steps/questions" element={<AnswerQuestions />} />
-              <Route path="/steps/breakthrough" element={<GetBreakthrough />} />
-              <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
-              <Route path="/workspaces" element={<ProtectedRoute><Workspaces /></ProtectedRoute>} />
-              <Route path="/api-keys" element={<ProtectedRoute><ApiKeys /></ProtectedRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/notification-test" element={<NotificationTest />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <GlobalErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <HashRouter>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/story" element={<Story />} />
+                <Route path="/steps/voice" element={<VoiceYourChaos />} />
+                <Route path="/steps/visualize" element={<WatchItVisualize />} />
+                <Route path="/steps/questions" element={<AnswerQuestions />} />
+                <Route path="/steps/breakthrough" element={<GetBreakthrough />} />
+                <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
+                <Route path="/workspaces" element={<ProtectedRoute><Workspaces /></ProtectedRoute>} />
+                <Route path="/api-keys" element={<ProtectedRoute><ApiKeys /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/notification-test" element={<NotificationTest />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </HashRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </GlobalErrorBoundary>
   </I18nextProvider>
 );
 
