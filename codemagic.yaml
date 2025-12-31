@@ -1,0 +1,359 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# aSpiral - Codemagic CI/CD Configuration
+# Bundle ID: com.apex.aspiral
+# ══════════════════════════════════════════════════════════════════════════════
+# CRITICAL: This file MUST be in the repository ROOT for Codemagic to detect it.
+# ══════════════════════════════════════════════════════════════════════════════
+
+definitions:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Environment Variables (shared across workflows)
+  # ─────────────────────────────────────────────────────────────────────────────
+  env_versions: &env_versions
+    node: 18.19.0
+    npm: 9.8.1
+    xcode: latest
+    cocoapods: default
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # iOS Signing - References profiles already uploaded to Codemagic
+  # ─────────────────────────────────────────────────────────────────────────────
+  ios_signing_development: &ios_signing_development
+    signing:
+      distribution_type: development
+      bundle_identifier: com.apex.aspiral
+      # References: aSpiral_Dev_2026 certificate + provisioning profile
+      
+  ios_signing_appstore: &ios_signing_appstore
+    signing:
+      distribution_type: app_store
+      bundle_identifier: com.apex.aspiral
+      # References: aSpiral_dist_2026 certificate + aSpiral_iOS_AppStoreConnect_2025 profile
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Build Scripts (reusable)
+  # ─────────────────────────────────────────────────────────────────────────────
+  scripts:
+    - &install_dependencies
+      name: Install dependencies
+      script: |
+        npm ci
+
+    - &build_web_assets
+      name: Build web assets
+      script: |
+        npm run build
+
+    - &capacitor_sync_ios
+      name: Capacitor sync iOS
+      script: |
+        npx cap sync ios
+
+    - &capacitor_sync_android
+      name: Capacitor sync Android
+      script: |
+        npx cap sync android
+
+    - &export_compliance_guardrail
+      name: "Guardrail: enforce export compliance key"
+      script: |
+        #!/bin/bash
+        set -eo pipefail
+        
+        PLIST="ios/App/App/Info.plist"
+        if [ ! -f "$PLIST" ]; then
+          echo "❌ Export compliance guardrail: Info.plist not found at: $PLIST"
+          exit 2
+        fi
+        
+        TARGET_VALUE="false"
+        
+        if /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$PLIST" >/dev/null 2>&1; then
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption $TARGET_VALUE" "$PLIST"
+        else
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool $TARGET_VALUE" "$PLIST"
+        fi
+        
+        /usr/bin/plutil -lint "$PLIST" >/dev/null
+        echo "✅ Export compliance guardrail: ITSAppUsesNonExemptEncryption=$TARGET_VALUE in $PLIST"
+
+    - &verify_ipa_compliance
+      name: "Preflight: verify export compliance key in IPA"
+      script: |
+        #!/bin/bash
+        set -eo pipefail
+        
+        IPA="$(ls -1 build/ios/ipa/*.ipa 2>/dev/null | head -n 1 || true)"
+        if [ -z "$IPA" ]; then
+          echo "❌ Preflight: IPA not found at build/ios/ipa/*.ipa"
+          exit 2
+        fi
+        
+        TMPDIR="$(mktemp -d)"
+        unzip -q "$IPA" -d "$TMPDIR"
+        
+        APP_DIR="$(find "$TMPDIR/Payload" -maxdepth 1 -type d -name "*.app" | head -n 1 || true)"
+        if [ -z "$APP_DIR" ]; then
+          echo "❌ Preflight: no *.app found under Payload/"
+          exit 2
+        fi
+        
+        APP_PLIST="$APP_DIR/Info.plist"
+        EXPECTED="false"
+        ACTUAL="$(/usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$APP_PLIST" 2>/dev/null || true)"
+        
+        if [ "$ACTUAL" != "$EXPECTED" ]; then
+          echo "❌ Preflight: ITSAppUsesNonExemptEncryption mismatch. Expected '$EXPECTED', got '${ACTUAL:-MISSING}'"
+          exit 1
+        fi
+        
+        echo "✅ Preflight: IPA contains ITSAppUsesNonExemptEncryption=$EXPECTED"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WORKFLOWS
+# ══════════════════════════════════════════════════════════════════════════════
+
+workflows:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # iOS Internal TestFlight
+  # Trigger: git tag ios-v* (e.g., ios-v1.0.0)
+  # ─────────────────────────────────────────────────────────────────────────────
+  ios-internal-testflight:
+    name: iOS Internal TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    
+    environment:
+      <<: *env_versions
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.apex.aspiral
+      vars:
+        BUNDLE_ID: "com.apex.aspiral"
+        APP_NAME: "aSpiral"
+      groups:
+        - appstore_credentials  # Contains APP_STORE_CONNECT_* vars
+    
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'ios-v*'
+          include: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+        
+      - name: Build web assets
+        script: npm run build
+        
+      - name: Capacitor sync iOS
+        script: npx cap sync ios
+        
+      - name: "Guardrail: enforce export compliance key"
+        script: |
+          #!/bin/bash
+          set -eo pipefail
+          PLIST="ios/App/App/Info.plist"
+          TARGET_VALUE="false"
+          if /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$PLIST" >/dev/null 2>&1; then
+            /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption $TARGET_VALUE" "$PLIST"
+          else
+            /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool $TARGET_VALUE" "$PLIST"
+          fi
+          /usr/bin/plutil -lint "$PLIST" >/dev/null
+          echo "✅ Export compliance guardrail: ITSAppUsesNonExemptEncryption=$TARGET_VALUE"
+          
+      - name: Install CocoaPods
+        script: |
+          cd ios/App && pod install
+          
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+          
+      - name: Increment build number
+        script: |
+          cd ios/App
+          LATEST_BUILD=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" || echo "0")
+          NEW_BUILD=$((LATEST_BUILD + 1))
+          agvtool new-version -all $NEW_BUILD
+          echo "Build number: $NEW_BUILD"
+          
+      - name: Build iOS IPA
+        script: |
+          cd ios/App
+          xcode-project build-ipa \
+            --workspace App.xcworkspace \
+            --scheme App \
+            --config Release \
+            --archive-flags="-destination 'generic/platform=iOS'"
+            
+      - name: "Preflight: verify export compliance in IPA"
+        script: |
+          #!/bin/bash
+          set -eo pipefail
+          IPA="$(ls -1 build/ios/ipa/*.ipa 2>/dev/null | head -n 1)"
+          TMPDIR="$(mktemp -d)"
+          unzip -q "$IPA" -d "$TMPDIR"
+          APP_DIR="$(find "$TMPDIR/Payload" -maxdepth 1 -type d -name "*.app" | head -n 1)"
+          ACTUAL="$(/usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$APP_DIR/Info.plist" 2>/dev/null || true)"
+          if [ "$ACTUAL" != "false" ]; then
+            echo "❌ Export compliance mismatch: got '${ACTUAL:-MISSING}'"
+            exit 1
+          fi
+          echo "✅ Preflight passed: ITSAppUsesNonExemptEncryption=false"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - ios/App/App.xcworkspace/xcuserdata/**/*.xcscheme
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+        beta_groups:
+          - "Internal Testers"
+      email:
+        recipients:
+          - michael@apexbiz.io
+        notify:
+          success: true
+          failure: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Android Internal Play Store
+  # Trigger: git tag android-v* (e.g., android-v1.0.0)
+  # ─────────────────────────────────────────────────────────────────────────────
+  android-internal-play:
+    name: Android Internal Play Store
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    
+    environment:
+      <<: *env_versions
+      android_signing:
+        - aspiral_keystore  # Reference to keystore in Codemagic
+      java: 17
+      vars:
+        BUNDLE_ID: "com.apex.aspiral"
+        APP_NAME: "aSpiral"
+      groups:
+        - google_play_credentials  # Contains GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'android-v*'
+          include: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+        
+      - name: Build web assets
+        script: npm run build
+        
+      - name: Capacitor sync Android
+        script: npx cap sync android
+        
+      - name: Set Android version
+        script: |
+          cd android
+          # Extract version from tag (android-v1.0.0 -> 1.0.0)
+          VERSION=$(echo $CM_TAG | sed 's/android-v//')
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          
+          echo "Version: $VERSION, VersionCode: $VERSION_CODE"
+          
+          # Update build.gradle
+          sed -i '' "s/versionCode [0-9]*/versionCode $VERSION_CODE/" app/build.gradle
+          sed -i '' "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" app/build.gradle
+          
+      - name: Build Android AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+          
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/apk/release/*.apk
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: false
+      email:
+        recipients:
+          - michael@apexbiz.io
+        notify:
+          success: true
+          failure: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Development Build (PR validation)
+  # Trigger: Pull requests to main/develop
+  # ─────────────────────────────────────────────────────────────────────────────
+  pr-validation:
+    name: PR Validation Build
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    
+    environment:
+      <<: *env_versions
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: com.apex.aspiral
+    
+    triggering:
+      events:
+        - pull_request
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+        - pattern: 'develop'
+          include: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+        
+      - name: Lint & Type check
+        script: |
+          npm run lint || true
+          npm run typecheck || true
+          
+      - name: Build web assets
+        script: npm run build
+        
+      - name: Capacitor sync (both platforms)
+        script: |
+          npx cap sync ios
+          npx cap sync android
+          
+      - name: iOS build check (no signing)
+        script: |
+          cd ios/App && pod install
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            build
+            
+      - name: Android build check
+        script: |
+          cd android && ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/apk/debug/*.apk
