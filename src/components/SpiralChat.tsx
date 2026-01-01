@@ -11,6 +11,7 @@ import { QuestionBubble } from "@/components/QuestionBubble";
 import { SpiralScene } from "@/components/3d/SpiralScene";
 import { BreakthroughCard } from "@/components/BreakthroughCard";
 import { UltraFastToggle } from "@/components/UltraFastToggle";
+import { SpeakingIndicator } from "@/components/SpeakingIndicator";
 import { LoadingState } from "@/components/LoadingState";
 import { FloatingMenuButton, MainMenu, QuickActionsBar, SettingsPanel, KeyboardShortcutsModal } from "@/components/menu";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
@@ -63,6 +64,10 @@ export function SpiralChat() {
     dismissBreakthroughCard,
     toggleUltraFastMode,
     resetSession,
+    isAISpeaking,
+    isTTSEnabled,
+    setTTSEnabled,
+    stopSpeaking,
   } = useSpiralAI({
     onEntitiesExtracted: (entities) => {
       toast({
@@ -154,6 +159,7 @@ export function SpiralChat() {
       stopRecording();
     } else {
       dismissQuestion(); // Clear question when starting new input
+      stopSpeaking(); // Stop AI speaking when user starts talking
       toggleRecording();
     }
   };
@@ -423,6 +429,13 @@ export function SpiralChat() {
         
         {/* Entity Counter & Demo Controls */}
         <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
+          {/* Speaking Indicator */}
+          <SpeakingIndicator
+            isSpeaking={isAISpeaking}
+            isEnabled={isTTSEnabled}
+            onToggle={() => setTTSEnabled(!isTTSEnabled)}
+          />
+
           {/* Ultra-fast mode toggle */}
           <UltraFastToggle
             isEnabled={ultraFastMode}

@@ -6,6 +6,7 @@ import { validateCoherence, deduplicateEntities, prioritizeEntities } from "@/li
 import { getEntityLimit, type UserTier } from "@/lib/entityLimits";
 import { matchEnergy, adjustQuestionEnergy } from "@/lib/energyMatcher";
 import { antiRepetition } from "@/lib/antiRepetition";
+import { useTTS } from "@/hooks/useTTS";
 import { 
   detectPatternsEarly, 
   shouldStopAsking, 
@@ -68,7 +69,16 @@ interface UseSpiralAIOptions {
 export function useSpiralAI(options: UseSpiralAIOptions = {}) {
   const { autoSendInterval = 10000, userTier = "free" } = options;
   const entityLimit = getEntityLimit(userTier);
-  
+
+  // Initialize TTS for voice responses
+  const {
+    speak: speakResponse,
+    stop: stopSpeaking,
+    isSpeaking: isAISpeaking,
+    isEnabled: isTTSEnabled,
+    setIsEnabled: setTTSEnabled,
+  } = useTTS({ userTier });
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStage, setProcessingStage] = useState<"extracting" | "generating" | "breakthrough" | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
@@ -109,22 +119,36 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
       options.onBreakthrough?.(data);
       
       // Format breakthrough message
-      addMessage({
-        role: "assistant",
-        content: `✨ **BREAKTHROUGH** ✨
+      const breakthroughMessage = `✨ **BREAKTHROUGH** ✨
 
 **The Friction:** ${data.friction}
 
 **The Grease:** ${data.grease}
 
-**💡 ${data.insight}**`,
-      });
-    } else {
-      options.onBreakthrough?.();
+**💡 ${data.insight}**`;
+
       addMessage({
         role: "assistant",
-        content: "✨ **BREAKTHROUGH** ✨\n\nLet's cut to what matters.",
+        content: breakthroughMessage,
       });
+
+      // Speak the breakthrough
+      if (isTTSEnabled) {
+        speakResponse(`Breakthrough. ${data.insight}`);
+      }
+    } else {
+      options.onBreakthrough?.();
+      const simpleBreakthrough = "✨ **BREAKTHROUGH** ✨\n\nLet's cut to what matters.";
+
+      addMessage({
+        role: "assistant",
+        content: simpleBreakthrough,
+      });
+
+      // Speak simple breakthrough
+      if (isTTSEnabled) {
+        speakResponse("Breakthrough. Let's cut to what matters.");
+      }
     }
   }, [triggerBreakthrough, addMessage, options]);
 
@@ -372,12 +396,19 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
         // Store response
         if (data.response && data.question) {
           setLastResponse(data.response);
-          
+
+          const formattedResponse = data.response + `\n\n**${data.question}**`;
+
           // Add as message in chat
           addMessage({
             role: "assistant",
-            content: data.response + `\n\n**${data.question}**`,
+            content: formattedResponse,
           });
+
+          // Speak the response
+          if (isTTSEnabled) {
+            speakResponse(formattedResponse);
+          }
         }
 
         return data;
@@ -487,5 +518,9 @@ export function useSpiralAI(options: UseSpiralAIOptions = {}) {
     resetSession,
     dismissBreakthroughCard,
     toggleUltraFastMode,
+    isAISpeaking,
+    isTTSEnabled,
+    setTTSEnabled,
+    stopSpeaking,
   };
 }
