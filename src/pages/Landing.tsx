@@ -460,7 +460,7 @@ const Landing = () => {
                 <motion.div
                   className="relative p-8 lg:p-10 rounded-3xl border border-border/30 bg-card/30 backdrop-blur-sm 
                     hover:border-primary/40 hover:bg-card/50 transition-all duration-500 group cursor-pointer
-                    hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
+                    hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 h-full min-h-[280px] lg:min-h-[300px]"
                   variants={scaleInVariant}
                   initial="hidden"
                   animate={howItWorksInView ? "visible" : "hidden"}
