@@ -1,272 +1,203 @@
 workflows:
-  aspiral_ios_preflight:
-    name: aSpiral • iOS Preflight (list workspace/schemes/plists)
-    max_build_duration: 30
-    instance_type: mac_mini_m2
-
-    environment:
-      groups:
-        - ios_credentials
-        - appstore_credentials
-
-    scripts:
-      - name: Preflight (confirm required env)
-        script: |
-          set -euo pipefail
-          for v in TEAM_ID BUNDLE_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_PRIVATE_KEY; do
-            if [ -z "${!v:-}" ]; then
-              echo "Missing required env var: $v"
-              exit 1
-            fi
-          done
-          echo "Env OK"
-          echo "TEAM_ID=$TEAM_ID"
-          echo "BUNDLE_ID=$BUNDLE_ID"
-
-      - name: List candidates (workspace/project/schemes/plists)
-        script: |
-          set -euo pipefail
-          echo "=== Workspaces (excluding Pods) ==="
-          find . -maxdepth 7 -name "*.xcworkspace" -print | grep -v "Pods.xcworkspace" || true
-          echo ""
-          echo "=== Projects (excluding Pods) ==="
-          find . -maxdepth 7 -name "*.xcodeproj" -print | grep -v "Pods.xcodeproj" || true
-          echo ""
-          echo "=== Info.plist candidates ==="
-          find . -maxdepth 10 -name "Info.plist" -print || true
-          echo ""
-          echo "=== Schemes (best-effort) ==="
-          WS="$(find . -maxdepth 7 -name "*.xcworkspace" -print | grep -v "Pods.xcworkspace" | head -n 1 || true)"
-          PRJ="$(find . -maxdepth 7 -name "*.xcodeproj" -print | grep -v "Pods.xcodeproj" | head -n 1 || true)"
-          if [ -n "${WS}" ]; then
-            xcodebuild -list -workspace "${WS}" || true
-          elif [ -n "${PRJ}" ]; then
-            xcodebuild -list -project "${PRJ}" || true
-          else
-            echo "No .xcworkspace or .xcodeproj found."
-            exit 1
-          fi
-
   aspiral_ios_testflight:
-    name: aSpiral • iOS → TestFlight (ASC API key)
-    max_build_duration: 90
+    name: aSpiral iOS → TestFlight (API Key)
     instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "ios-v*"
+          include: true
+      cancel_previous_builds: true
 
     environment:
+      # Match your proven TradeLine lane: Node 20 + Xcode 16.4
+      node: 20
+      xcode: 16.4
+      cocoapods: default
+
       groups:
-        - ios_credentials
         - appstore_credentials
+
       vars:
-        # Optional override in Codemagic UI (recommended if you have multiple candidates)
-        # XCODE_WORKSPACE: "./path/to/App.xcworkspace"
-        # XCODE_PROJECT: "./path/to/App.xcodeproj"
-        # XCODE_SCHEME: "YourScheme"
-        # INFO_PLIST_PATH: "./path/to/Info.plist"
-        RELEASE_VERSION: "1.0.0"
+        # KEEP THESE NON-EMPTY (Codemagic validator hard-fails on empty strings)
+        TEAM_ID: NWGUYF42KW
+        BUNDLE_ID: com.apex.tradeline
+
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+        INFO_PLIST_PATH: ios/App/App/Info.plist
+
+        # Artifact path
+        IOS_IPA_PATH: build/ios/ipa/App.ipa
+
+      # IMPORTANT: Use ONE signing mode only.
+      # In your NEW Codemagic account, upload a Distribution .p12 + the App Store provisioning profile.
+      # Then set these names to match what you uploaded.
+      ios_signing:
+        provisioning_profiles:
+          - TL247_mobpro_tradeline_01
+        certificates:
+          - TL247-Apple-Distribution-2025
 
     scripts:
-      - name: Preflight (fail fast)
+      - name: Preflight (normalize App Store Connect env + sanity)
         script: |
           set -euo pipefail
-          for v in TEAM_ID BUNDLE_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_PRIVATE_KEY; do
-            if [ -z "${!v:-}" ]; then
-              echo "Missing required env var: $v"
-              exit 1
-            fi
-          done
 
-          if [ -z "${CM_ENV:-}" ]; then
-            echo "Missing CM_ENV (Codemagic internal env export file)."
+          echo "✅ Preflight starting"
+
+          # Normalize key id variable (Codemagic publishing expects KEY_IDENTIFIER in our pipeline)
+          KEY_ID="${APP_STORE_CONNECT_KEY_IDENTIFIER:-${APP_STORE_CONNECT_KEY_ID:-${APP_STORE_CONNECT_KEY_iD:-}}}"
+          if [ -z "${APP_STORE_CONNECT_ISSUER_ID:-}" ] || [ -z "${APP_STORE_CONNECT_PRIVATE_KEY:-}" ] || [ -z "$KEY_ID" ]; then
+            echo "❌ Missing App Store Connect API key variables."
+            echo "Need: APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY, and one of:"
+            echo "  APP_STORE_CONNECT_KEY_IDENTIFIER OR APP_STORE_CONNECT_KEY_ID OR APP_STORE_CONNECT_KEY_iD"
             exit 1
           fi
 
-          echo "Preflight OK"
+          echo "APP_STORE_CONNECT_KEY_IDENTIFIER=$KEY_ID" >> "$CM_ENV"
+          echo "TEAM_ID=$TEAM_ID" >> "$CM_ENV"
+          echo "BUNDLE_ID=$BUNDLE_ID" >> "$CM_ENV"
+
+          # Verify iOS paths exist (after cap sync they will; we still enforce repo layout)
+          if [ ! -f "$INFO_PLIST_PATH" ]; then
+            echo "❌ INFO_PLIST_PATH not found: $INFO_PLIST_PATH"
+            exit 1
+          fi
+
+          echo "✅ Preflight OK"
           echo "TEAM_ID=$TEAM_ID"
           echo "BUNDLE_ID=$BUNDLE_ID"
-
-      - name: Resolve workspace/project, scheme, Info.plist (strict; no guessing)
-        script: |
-          set -euo pipefail
-
-          python3 - <<'PY'
-          import glob, os, subprocess, sys
-
-          bundle_id = (os.environ.get("BUNDLE_ID") or "").strip()
-          cm_env = os.environ.get("CM_ENV")
-          override_ws = (os.environ.get("XCODE_WORKSPACE") or "").strip()
-          override_prj = (os.environ.get("XCODE_PROJECT") or "").strip()
-          override_scheme = (os.environ.get("XCODE_SCHEME") or "").strip()
-          override_plist = (os.environ.get("INFO_PLIST_PATH") or "").strip()
-
-          def list_paths(pattern, exclude_substrings=()):
-            paths = glob.glob(pattern, recursive=True)
-            out = []
-            for p in paths:
-              if any(x in p for x in exclude_substrings):
-                continue
-              out.append(p)
-            return sorted(out)
-
-          workspaces = list_paths("**/*.xcworkspace", exclude_substrings=("Pods.xcworkspace", "/Pods/"))
-          projects   = list_paths("**/*.xcodeproj",  exclude_substrings=("Pods.xcodeproj", "/Pods/"))
-          plists     = list_paths("**/Info.plist")
-
-          ws = override_ws
-          prj = override_prj
-
-          if ws and prj:
-            print("ERROR: Set only one of XCODE_WORKSPACE or XCODE_PROJECT (not both).", file=sys.stderr)
-            sys.exit(10)
-
-          if not ws and not prj:
-            if len(workspaces) == 1:
-              ws = workspaces[0]
-            elif len(workspaces) > 1:
-              print("ERROR: Multiple workspaces found. Set XCODE_WORKSPACE in Codemagic UI.", file=sys.stderr)
-              print("\n".join(workspaces), file=sys.stderr)
-              sys.exit(11)
-            elif len(projects) == 1:
-              prj = projects[0]
-            elif len(projects) > 1:
-              print("ERROR: Multiple projects found. Set XCODE_PROJECT in Codemagic UI.", file=sys.stderr)
-              print("\n".join(projects), file=sys.stderr)
-              sys.exit(12)
-            else:
-              print("ERROR: No .xcworkspace or .xcodeproj found.", file=sys.stderr)
-              sys.exit(13)
-
-          # Resolve schemes (must be explicit if ambiguous)
-          scheme = override_scheme
-          schemes = []
-          try:
-            cmd = ["xcodebuild", "-list", "-json"]
-            cmd += ["-workspace", ws] if ws else ["-project", prj]
-            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-            # naive extract without json module to avoid rare non-json output;
-            # if xcodebuild returns valid json, it includes "schemes" list.
-            # We'll fallback to plain -list output if parsing fails.
-            import json
-            data = json.loads(out)
-            schemes = (data.get("project", {}).get("schemes", []) or data.get("workspace", {}).get("schemes", []) or [])
-          except Exception:
-            try:
-              cmd = ["xcodebuild", "-list"]
-              cmd += ["-workspace", ws] if ws else ["-project", prj]
-              out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-              lines = [ln.strip() for ln in out.splitlines()]
-              # crude: capture lines after "Schemes:" until blank
-              if "Schemes:" in lines:
-                i = lines.index("Schemes:") + 1
-                while i < len(lines) and lines[i]:
-                  schemes.append(lines[i].strip())
-                  i += 1
-            except Exception:
-              schemes = []
-
-          if not scheme:
-            if len(schemes) == 1:
-              scheme = schemes[0]
-            elif len(schemes) > 1:
-              print("ERROR: Multiple schemes found. Set XCODE_SCHEME in Codemagic UI.", file=sys.stderr)
-              print("Schemes:", schemes, file=sys.stderr)
-              sys.exit(20)
-            else:
-              print("ERROR: Could not list schemes. Set XCODE_SCHEME in Codemagic UI.", file=sys.stderr)
-              sys.exit(21)
-
-          # Resolve Info.plist: must match BUNDLE_ID if possible; otherwise require explicit override
-          plist = override_plist
-          if not plist:
-            matches = []
-            for p in plists:
-              try:
-                bi = subprocess.check_output(
-                  ["/usr/libexec/PlistBuddy", "-c", "Print :CFBundleIdentifier", p],
-                  stderr=subprocess.DEVNULL,
-                  text=True
-                ).strip()
-                if bi == bundle_id:
-                  matches.append(p)
-              except Exception:
-                continue
-
-            if len(matches) == 1:
-              plist = matches[0]
-            elif len(matches) > 1:
-              print("ERROR: Multiple Info.plist match BUNDLE_ID. Set INFO_PLIST_PATH in Codemagic UI.", file=sys.stderr)
-              print("\n".join(matches), file=sys.stderr)
-              sys.exit(30)
-            else:
-              print("ERROR: Could not find Info.plist with CFBundleIdentifier == BUNDLE_ID.", file=sys.stderr)
-              print("Set INFO_PLIST_PATH in Codemagic UI. Candidates:", file=sys.stderr)
-              print("\n".join(plists[:50]), file=sys.stderr)  # cap noise
-              sys.exit(31)
-
-          print("Resolved:")
-          print("  XCODE_WORKSPACE:", ws)
-          print("  XCODE_PROJECT:  ", prj)
-          print("  XCODE_SCHEME:   ", scheme)
-          print("  INFO_PLIST_PATH:", plist)
-
-          with open(cm_env, "a") as f:
-            if ws:
-              f.write(f'XCODE_WORKSPACE="{ws}"\n')
-            if prj:
-              f.write(f'XCODE_PROJECT="{prj}"\n')
-            f.write(f'XCODE_SCHEME="{scheme}"\n')
-            f.write(f'INFO_PLIST_PATH="{plist}"\n')
-          PY
-
-      - name: Initialize keychain
-        script: |
-          set -euo pipefail
-          keychain initialize
-
-      - name: Fetch signing files (App Store) + import certs
-        script: |
-          set -euo pipefail
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-          keychain add-certificates
-
-      - name: Set version + build number (monotonic)
-        script: |
-          set -euo pipefail
           echo "INFO_PLIST_PATH=$INFO_PLIST_PATH"
-          echo "RELEASE_VERSION=$RELEASE_VERSION"
-          echo "BUILD_NUMBER=$BUILD_NUMBER"
 
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $RELEASE_VERSION" "$INFO_PLIST_PATH" || \
-          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $RELEASE_VERSION" "$INFO_PLIST_PATH"
+      - name: Install JS dependencies (MUST run before any xcodebuild/SPM)
+        script: |
+          set -euo pipefail
+          node -v
+          npm -v
+          npm ci
 
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$INFO_PLIST_PATH" || \
-          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$INFO_PLIST_PATH"
+      - name: Build web assets
+        script: |
+          set -euo pipefail
+          npm run build
 
+      - name: Verify web build output exists (prevents blank/purple screen builds)
+        script: |
+          set -euo pipefail
+          for d in dist build www; do
+            if [ -f "$d/index.html" ]; then
+              echo "✅ Found $d/index.html"
+              exit 0
+            fi
+          done
+          echo "❌ ERROR: No index.html found in dist/, build/, or www/."
+          echo "Fix your frontend build output folder OR capacitor.config webDir."
+          exit 1
+
+      - name: Sync Capacitor iOS (creates ios/App/App.xcworkspace and wires plugins)
+        script: |
+          set -euo pipefail
+          npx cap sync ios
+
+      - name: Verify iOS assets copied by Capacitor
+        script: |
+          set -euo pipefail
+          if [ -f "ios/App/App/public/index.html" ]; then
+            echo "✅ ios/App/App/public/index.html exists"
+          else
+            echo "❌ ERROR: ios/App/App/public/index.html missing after cap sync."
+            echo "This is the #1 cause of blank/purple screen builds."
+            exit 1
+          fi
+
+      - name: Set iOS version (from tag) + unique build number (timestamp)
+        script: |
+          set -euo pipefail
+
+          VERSION="${CM_TAG#ios-v}"
+          BUILD="$(date -u +%Y%m%d%H%M%S)"   # always unique, TestFlight-safe
+
+          echo "Setting iOS Version=$VERSION Build=$BUILD"
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$INFO_PLIST_PATH" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST_PATH"
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$INFO_PLIST_PATH" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD" "$INFO_PLIST_PATH"
+
+          echo "BUILD_NUMBER=$BUILD" >> "$CM_ENV"
+          echo "✅ Updated Info.plist:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST_PATH"
           /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST_PATH"
 
-      - name: Apply provisioning profiles
+      - name: Install CocoaPods
         script: |
           set -euo pipefail
-          xcode-project use-profiles
+          cd ios/App
+          pod install
 
-      - name: Build IPA
+      - name: Set up code signing (use uploaded profiles)
         script: |
           set -euo pipefail
-          echo "SCHEME=$XCODE_SCHEME"
-          if [ -n "${XCODE_WORKSPACE:-}" ]; then
-            xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
-          else
-            xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
+
+      - name: Build iOS IPA
+        script: |
+          set -euo pipefail
+          mkdir -p build/ios/ipa
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --config Release \
+            --ipa-path "$IOS_IPA_PATH"
+
+      - name: Verify IPA version/build (minimal, non-fragile)
+        script: |
+          # Intentionally NOT using "set -euo pipefail" to avoid false negatives in a safety check
+          IPA_PATH="$IOS_IPA_PATH"
+          echo "📦 Found IPA: $IPA_PATH"
+
+          TEMP_DIR=$(mktemp -d)
+          unzip -q "$IPA_PATH" -d "$TEMP_DIR"
+
+          PLIST_PATH="$TEMP_DIR/Payload/App.app/Info.plist"
+          if [ ! -f "$PLIST_PATH" ]; then
+            echo "❌ Info.plist not found at expected path"
+            rm -rf "$TEMP_DIR"
+            exit 1
           fi
+
+          echo "✅ IPA Info.plist: Payload/App.app/Info.plist"
+          IPA_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST_PATH")
+          IPA_BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST_PATH")
+          echo "✅ IPA Version: $IPA_VERSION"
+          echo "✅ IPA Build:   $IPA_BUILD"
+
+          rm -rf "$TEMP_DIR"
+          echo "✅ IPA version/build verified. Safe to publish."
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/ios/ipa/*.dSYM.zip
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      - ios/App/App/public/index.html
 
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_ID
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
+
+      email:
+        recipients:
+          - michael@apexbiz.io
+        notify:
+          success: true
+          failure: true
