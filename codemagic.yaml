@@ -1,6 +1,6 @@
 workflows:
-  aspiral_ios_testflight:
-    name: aSpiral iOS -> TestFlight (Green Next Run)
+  tradeline_ios_testflight:
+    name: TradeLine iOS → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 90
 
@@ -13,13 +13,10 @@ workflows:
         - appstore_credentials
       vars:
         NODE_OPTIONS: "--max_old_space_size=8192"
-
-        # Defaults (we verify + auto-pick workspace after pods)
         XCODE_SCHEME: "App"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_FALLBACK_WORKSPACE: "ios/App/App.xcodeproj/project.xcworkspace"
         INFO_PLIST_PATH: "ios/App/App/Info.plist"
-
         IPA_PATH: "build/ios/ipa/App.ipa"
 
     scripts:
@@ -31,7 +28,7 @@ workflows:
             TEAM_ID
             BUNDLE_ID
             APP_STORE_CONNECT_ISSUER_ID
-            APP_STORE_CONNECT_KEY_IDENTIFIER
+            APP_STORE_CONNECT_KEY_ID
             APP_STORE_CONNECT_PRIVATE_KEY
             CERTIFICATE_PRIVATE_KEY
           )
@@ -53,39 +50,38 @@ workflows:
             exit 1
           fi
 
-          echo "Preflight OK"
+          echo "✅ Preflight OK"
 
-      - name: Pin npm (match known-good lane style)
+      - name: Pin npm
         script: |
           set -euo pipefail
           node -v
           npm install -g npm@10
           npm -v
 
-      - name: Initialize keychain + fetch/create signing (no uploaded certs needed)
+      - name: Initialize keychain + fetch signing
         script: |
           set -euo pipefail
 
           keychain initialize
 
-          # Codemagic CLI tools documented flags (explicit = less ambiguity)
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --key-id "$APP_STORE_CONNECT_KEY_ID" \
             --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY
 
           keychain add-certificates
 
-      - name: Install JS deps
+      - name: Install dependencies
         script: |
           set -euo pipefail
           export NODE_OPTIONS="--max_old_space_size=8192"
           npm ci
 
-      - name: Build web assets (OOM hardened)
+      - name: Build web assets
         script: |
           set -euo pipefail
           export NODE_OPTIONS="--max_old_space_size=8192"
@@ -103,7 +99,7 @@ workflows:
           pod install
           cd ../..
 
-      - name: Resolve workspace (prefer App.xcworkspace after pods)
+      - name: Resolve workspace
         script: |
           set -euo pipefail
 
@@ -113,12 +109,12 @@ workflows:
             echo "XCODE_WORKSPACE=$XCODE_FALLBACK_WORKSPACE" >> "$CM_ENV"
             echo "Using fallback workspace: $XCODE_FALLBACK_WORKSPACE"
           else
-            echo "No workspace found. Listing ios/App:"
+            echo "❌ No workspace found. Listing ios/App:"
             ls -la ios/App || true
             exit 1
           fi
 
-      - name: Set unique build number (TestFlight-safe)
+      - name: Set build number
         script: |
           set -euo pipefail
 
@@ -128,7 +124,7 @@ workflows:
 
           echo "CFBundleVersion set to $BUILD"
 
-      - name: Configure code signing (use fetched profiles)
+      - name: Configure code signing
         script: |
           set -euo pipefail
           xcode-project use-profiles
@@ -144,12 +140,12 @@ workflows:
             --config Release \
             --ipa-path "$IPA_PATH"
 
-      - name: Verify IPA version + build (minimal golden check)
+      - name: Verify IPA
         script: |
           set -euo pipefail
 
           if [ ! -f "$IPA_PATH" ]; then
-            echo "IPA not found at $IPA_PATH"
+            echo "❌ IPA not found at $IPA_PATH"
             exit 1
           fi
 
@@ -158,7 +154,7 @@ workflows:
 
           PLIST_PATH="$TEMP_DIR/Payload/App.app/Info.plist"
           if [ ! -f "$PLIST_PATH" ]; then
-            echo "Info.plist not found at expected path inside IPA"
+            echo "❌ Info.plist not found inside IPA"
             rm -rf "$TEMP_DIR"
             exit 1
           fi
@@ -166,8 +162,8 @@ workflows:
           IPA_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST_PATH")
           IPA_BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST_PATH")
 
-          echo "IPA Version: $IPA_VERSION"
-          echo "IPA Build:   $IPA_BUILD"
+          echo "✅ IPA Version: $IPA_VERSION"
+          echo "✅ IPA Build:   $IPA_BUILD"
 
           rm -rf "$TEMP_DIR"
 
@@ -179,6 +175,6 @@ workflows:
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
