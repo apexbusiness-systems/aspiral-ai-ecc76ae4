@@ -1,39 +1,160 @@
 workflows:
   aspiral_ios_testflight:
-    name: aSpiral iOS → TestFlight (API Key, Auto Signing)
-    instance_type: mac_mini_m2
-    max_build_duration: 90
-
-    triggering:
-      events:
-        - push
-        - tag
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
-      tag_patterns:
-        - pattern: "ios-v*"
-          include: true
-        - pattern: "ios-*"
-          include: true
+    name: aSpiral iOS → TestFlight (API key, no profile refs)
+    max_build_duration: 120
 
     environment:
+      xcode: 16.4
+      cocoapods: default
       groups:
-        # Keep your existing groups (adjust names in Codemagic UI if different)
         - ios_credentials
         - appstore_credentials
       vars:
-        # Xcode paths (from your build log “candidates”)
-        XCODE_WORKSPACE: "./ios/App/App.xcodeproj/project.xcworkspace"
-        XCODE_SCHEME: "App"
-        INFO_PLIST_PATH: "./ios/App/App/Info.plist"
+        # Defaults (we also auto-detect after cap sync)
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+        INFO_PLIST_PATH: ios/App/App/Info.plist
 
-        # Build stability (fix Vite heap OOM)
-        NODE_OPTIONS: "--max_old_space_size=6144"
+    scripts:
+      - name: Preflight (fail fast)
+        script: |
+          set -euo pipefail
 
-        # Required identifiers (already in your env groups per logs/screens)
-        TEAM_ID: "$TEAM_ID"
+          required_vars=(
+            TEAM_ID
+            BUNDLE_ID
+            CERTIFICATE_PRIVATE_KEY
+            APP_STORE_CONNECT_PRIVATE_KEY
+            APP_STORE_CONNECT_KEY_IDENTIFIER
+            APP_STORE_CONNECT_ISSUER_ID
+          )
+
+          for v in "${required_vars[@]}"; do
+            if [[ -z "${!v:-}" ]]; then
+              echo "Missing required env var: ${v}"
+              exit 1
+            fi
+          done
+
+          if [[ ! -f "package.json" ]]; then
+            echo "package.json not found at repo root. Wrong working directory?"
+            exit 1
+          fi
+
+          echo "Preflight OK"
+
+      - name: Use Node 22 + install JS deps (prevents Capacitor SPM path failures)
+        script: |
+          set -euo pipefail
+
+          if ! command -v n >/dev/null 2>&1; then
+            npm install -g n
+          fi
+
+          n 22
+          hash -r
+
+          node -v
+          npm -v
+
+          export NODE_OPTIONS="--max_old_space_size=8192"
+          npm ci
+
+      - name: Build web + Capacitor sync (creates/updates iOS workspace)
+        script: |
+          set -euo pipefail
+          export NODE_OPTIONS="--max_old_space_size=8192"
+
+          npm run build
+          npx cap sync ios
+
+      - name: Detect workspace/scheme/plist (after deps + sync)
+        script: |
+          set -euo pipefail
+
+          # Workspace: prefer the CocoaPods/Capacitor workspace if present
+          if [[ -d "ios/App/App.xcworkspace" ]]; then
+            echo "XCODE_WORKSPACE=ios/App/App.xcworkspace" >> "$CM_ENV"
+          elif [[ -d "ios/App/App.xcodeproj/project.xcworkspace" ]]; then
+            echo "XCODE_WORKSPACE=ios/App/App.xcodeproj/project.xcworkspace" >> "$CM_ENV"
+          fi
+
+          # Info.plist common locations
+          if [[ -f "ios/App/App/Info.plist" ]]; then
+            echo "INFO_PLIST_PATH=ios/App/App/Info.plist" >> "$CM_ENV"
+          fi
+
+          # Detect a scheme if default is wrong (safe now because node_modules exists)
+          if [[ -n "${XCODE_WORKSPACE:-}" && -d "${XCODE_WORKSPACE}" ]]; then
+            detected_scheme="$(xcodebuild -list -workspace "${XCODE_WORKSPACE}" | awk '/Schemes:/{flag=1;next} flag && NF{print $1; exit}')"
+            if [[ -n "${detected_scheme:-}" ]]; then
+              echo "XCODE_SCHEME=${detected_scheme}" >> "$CM_ENV"
+            fi
+          fi
+
+          echo "Resolved:"
+          echo "  workspace=${XCODE_WORKSPACE}"
+          echo "  project=${XCODE_PROJECT}"
+          echo "  scheme=${XCODE_SCHEME}"
+          echo "  plist=${INFO_PLIST_PATH}"
+
+      - name: Set unique build number (timestamp)
+        script: |
+          set -euo pipefail
+
+          build_number="$(date -u +%Y%m%d%H%M%S)"
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${build_number}" "${INFO_PLIST_PATH}" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${build_number}" "${INFO_PLIST_PATH}"
+
+          echo "Build number set to ${build_number}"
+
+      - name: Fetch/create signing files (NO uploaded cert/profile refs required)
+        script: |
+          set -euo pipefail
+
+          keychain initialize
+
+          # Codemagic recommends fetching/creating signing files using App Store Connect API keys.
+          app-store-connect fetch-signing-files "${BUNDLE_ID}" \
+            --type IOS_APP_STORE \
+            --create \
+            --issuer-id "${APP_STORE_CONNECT_ISSUER_ID}" \
+            --key-id "${APP_STORE_CONNECT_KEY_IDENTIFIER}" \
+            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY
+
+          # Imports fetched/generated certificates into the keychain
+          keychain add-certificates
+
+          # Apply provisioning profiles to the Xcode project
+          xcode-project use-profiles \
+            --project "${CM_BUILD_DIR}/${XCODE_PROJECT}" \
+            --profile "${HOME}/Library/MobileDevice/Provisioning Profiles/*.mobileprovision"
+
+      - name: Build IPA
+        script: |
+          set -euo pipefail
+
+          xcode-project build-ipa \
+            --workspace "${CM_BUILD_DIR}/${XCODE_WORKSPACE}" \
+            --scheme "${XCODE_SCHEME}"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        # Upload IPA to App Store Connect using API key env vars
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+
+        # Keep this false for “upload only” (internal testing doesn’t need beta review).
+        submit_to_testflight: false
         BUNDLE_ID: "$BUNDLE_ID"
 
       xcode: 16.4
