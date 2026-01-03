@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/lib/i18n/config';
 import { SentinelProvider } from '@/components/SentinelProvider';
+import { Analytics } from "@vercel/analytics/react";
 import Landing from "./pages/Landing";
 import Story from "./pages/Story";
 import Index from "./pages/Index";
@@ -33,6 +34,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <Analytics />
           <HashRouter>
             <Routes>
               <Route path="/" element={<Landing />} />
