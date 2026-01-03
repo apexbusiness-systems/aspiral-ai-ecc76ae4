@@ -460,29 +460,49 @@ const Landing = () => {
                 <motion.div
                   className="relative p-8 lg:p-10 rounded-3xl border border-border/30 bg-card/30 backdrop-blur-sm 
                     hover:border-primary/40 hover:bg-card/50 transition-all duration-500 group cursor-pointer
-                    hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
+                    hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 h-full min-h-[280px] lg:min-h-[300px]"
                   variants={scaleInVariant}
                   initial="hidden"
                   animate={howItWorksInView ? "visible" : "hidden"}
                   custom={index * 0.1}
                 >
                   {/* Step Number */}
-                  <div className="absolute -top-4 left-8 w-10 h-10 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center text-base font-bold text-primary group-hover:bg-primary/30 group-hover:border-primary/60 transition-all duration-300">
+                  <div className="absolute -top-4 left-8 w-10 h-10 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center text-base font-bold text-primary group-hover:bg-primary/30 group-hover:border-primary/60 group-hover:scale-110 group-hover:-translate-y-0.5 transition-all duration-300">
                     {item.step}
                   </div>
                   
-                  {/* Icon */}
+                  {/* Icon with glow and particle effects */}
                   <motion.div 
-                    className="mb-6 pt-4"
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ type: "spring", stiffness: 400 }}
+                    className="mb-6 pt-4 relative"
+                    whileHover={{ 
+                      scale: 1.1, 
+                      rotate: 3,
+                      y: -4
+                    }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 400,
+                      damping: 12
+                    }}
                   >
+                    {/* Pulsing glow background */}
+                    <div className="absolute inset-0 -m-2 rounded-full bg-primary/0 group-hover:bg-primary/20 blur-xl group-hover:animate-pulse transition-all duration-500" />
+                    
+                    {/* Particle container */}
+                    <div className="particle-container absolute inset-0 flex items-center justify-center">
+                      <span className="particle particle-1 bg-primary/80 left-1/2 top-1/2" />
+                      <span className="particle particle-2 bg-accent/70 left-1/2 top-1/2" />
+                      <span className="particle particle-3 bg-primary/60 left-1/2 top-1/2" />
+                      <span className="particle particle-4 bg-accent/80 left-1/2 top-1/2" />
+                      <span className="particle particle-5 bg-primary/70 left-1/2 top-1/2" />
+                    </div>
+                    
                     <img 
                       src={item.customIcon} 
                       alt={item.title} 
                       loading="lazy"
                       decoding="async"
-                      className="w-14 h-14 lg:w-16 lg:h-16 opacity-90 group-hover:opacity-100 transition-opacity" 
+                      className="relative w-14 h-14 lg:w-16 lg:h-16 opacity-90 group-hover:opacity-100 transition-opacity drop-shadow-md group-hover:drop-shadow-lg" 
                     />
                   </motion.div>
                   
