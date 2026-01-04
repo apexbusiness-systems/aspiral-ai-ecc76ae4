@@ -60,6 +60,12 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Renderer V2 documentation
+
+For details on the cinematic rendering pipeline, feature flags, performance considerations, and rollback steps, see:
+
+- [Renderer V2: Cinematic Pipeline Documentation](docs/RENDERER_V2.md)
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
