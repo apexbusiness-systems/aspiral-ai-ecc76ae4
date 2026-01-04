@@ -387,6 +387,13 @@ export function stop(reason = 'stopped') {
 }
 
 export function disposeAudioSession() {
+  // Clear any pending gate timeout to prevent memory leaks
+  if (gateTimeoutId) {
+    clearTimeout(gateTimeoutId);
+    gateTimeoutId = null;
+    isGatedFlag = false;
+  }
+
   cancelActive('disposed', true);
   if (audioContext) {
     audioContext.close();
