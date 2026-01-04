@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Send, Maximize2, Minimize2, Sparkles, Cog, Droplets, Zap, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,12 +31,16 @@ import type { EntityType, Entity } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { OmniLinkAdapter } from "@/integrations/omnilink";
+import { createUpdateGuard } from "@/lib/updateGuard";
 
-interface SpiralChatProps {
-  externalRecordingTrigger?: number;
+export interface SpiralChatHandle {
+  toggleRecording: () => void;
+  openSettings: () => void;
 }
 
-export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
+interface SpiralChatProps {}
+
+export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [input, setInput] = useState("");
@@ -77,7 +81,7 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
     activeFriction,
   } = useSessionStore();
 
-  const {
+  const { 
     isProcessing: isAIProcessing,
     processingStage,
     currentQuestion,
@@ -89,7 +93,6 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
     ultraFastMode,
     processTranscript,
     accumulateTranscript,
-    sendBuffer,
     dismissQuestion,
     skipToBreakthrough,
     dismissBreakthroughCard,
@@ -100,6 +103,7 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
     handleCinematicComplete,
     setShowCinematic,
     setCinematicComplete,
+    flushTranscript,
   } = useSpiralAI({
     onEntitiesExtracted: (entities) => {
       // Track each entity creation
@@ -155,6 +159,10 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
   });
 
   const [liveTranscript, setLiveTranscript] = useState("");
+  const liveTranscriptGuard = useMemo(
+    () => createUpdateGuard({ name: "SpiralChat.setLiveTranscript" }),
+    []
+  );
   const [ttsEnabled, setTtsEnabled] = useState(true); // User can toggle TTS
 
   // Text-to-Speech for AI responses
@@ -195,8 +203,9 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
 
   // Update live transcript display
   useEffect(() => {
+    liveTranscriptGuard();
     setLiveTranscript(transcript);
-  }, [transcript]);
+  }, [transcript, liveTranscriptGuard]);
 
   // Initialize session on mount with user ID if authenticated
   useEffect(() => {
@@ -217,10 +226,10 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
   // When recording stops, send buffer
   useEffect(() => {
     if (!isRecording && !isRecordingPaused && liveTranscript) {
-      sendBuffer();
+      flushTranscript(liveTranscript);
       setLiveTranscript("");
     }
-  }, [isRecording, isRecordingPaused, liveTranscript, sendBuffer]);
+  }, [isRecording, isRecordingPaused, liveTranscript, flushTranscript]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,15 +254,13 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
     }
   }, [isRecording, stopRecording, trackFeature, dismissQuestion, toggleRecording]);
 
-  // Handle external recording trigger (from MobileNav)
-  const prevTriggerRef = useRef(externalRecordingTrigger);
-  useEffect(() => {
-    if (externalRecordingTrigger !== prevTriggerRef.current) {
-      prevTriggerRef.current = externalRecordingTrigger;
-      // Toggle recording when MobileNav record button is tapped
-      handleMicToggle();
-    }
-  }, [externalRecordingTrigger, handleMicToggle]);
+  useImperativeHandle(ref, () => ({
+    toggleRecording: handleMicToggle,
+    openSettings: () => {
+      trackFeature('settings_opened');
+      setIsSettingsOpen(true);
+    },
+  }), [handleMicToggle, trackFeature]);
 
 
   const addTestEntities = () => {
@@ -726,6 +733,11 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
                 onStop={isRecording ? stopRecording : undefined}
               />
             </div>
+            {!isSupported && (
+              <p className="text-xs text-muted-foreground text-center mb-4">
+                Voice input isn’t supported on this device. You can still type your thoughts.
+              </p>
+            )}
 
             {/* Text Input */}
             <form onSubmit={handleSubmit} className="flex gap-3">
@@ -750,4 +762,6 @@ export function SpiralChat({ externalRecordingTrigger = 0 }: SpiralChatProps) {
     </div>
     </LayoutGroup>
   );
-}
+});
+
+SpiralChat.displayName = "SpiralChat";
