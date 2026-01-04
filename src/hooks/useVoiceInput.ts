@@ -89,8 +89,6 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   // Refs for lifecycle management
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const isStartedRef = useRef(false); // Idempotent guard
-  const listenerAttachedRef = useRef(false); // Prevent duplicate listeners
-  const resultIndexRef = useRef(0); // Track processed results
   const interimTranscriptRef = useRef("");
   const lastInterimEmitRef = useRef(0);
   const INTERIM_UPDATE_INTERVAL = 150;
@@ -131,8 +129,6 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       recognitionRef.current = null;
     }
     isStartedRef.current = false;
-    listenerAttachedRef.current = false;
-    resultIndexRef.current = 0;
     interimTranscriptRef.current = "";
     emitDebugEvent({ type: 'listener.detach', data: { reason: 'cleanup' } });
   }, []);
@@ -154,6 +150,110 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     interimTranscriptRef.current = "";
     emitInterimUpdate("", true);
   }, [emitInterimUpdate, options]);
+
+  const handleRecognitionResult = useCallback((event: SpeechRecognitionEvent) => {
+    // FEEDBACK LOOP PREVENTION: Ignore transcripts while assistant is speaking
+    if (assistantIsSpeakingRef.current) {
+      emitDebugEvent({
+        type: 'stt.partial',
+        data: { ignored: true, reason: 'assistant_speaking' },
+      });
+      return;
+    }
+
+    let newFinalText = "";
+    let newInterimText = "";
+
+    // Process only new results from resultIndex
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const result = event.results[i];
+      const text = result[0].transcript;
+
+      if (result.isFinal) {
+        newFinalText += text;
+        emitDebugEvent({
+          type: 'stt.final',
+          data: {
+            text: text.substring(0, 50),
+            length: text.length,
+            resultIndex: i,
+          },
+        });
+      } else {
+        newInterimText += text;
+        emitDebugEvent({
+          type: 'stt.partial',
+          data: {
+            text: text.substring(0, 30) + (text.length > 30 ? '...' : ''),
+            length: text.length,
+            resultIndex: i,
+          },
+        });
+      }
+    }
+
+    // Update transcript buffers correctly:
+    // - Final: APPEND new final text
+    // - Interim: REPLACE with current interim (not append!)
+    if (newFinalText) {
+      setFinalTranscript(prev => (prev + " " + newFinalText).trim());
+      // Notify parent of final transcript
+      options.onTranscript?.(newFinalText.trim());
+    }
+
+    // Always replace interim (this is the key fix for "rapping")
+    interimTranscriptRef.current = newInterimText;
+    emitInterimUpdate(newInterimText);
+  }, [emitInterimUpdate, options]);
+
+  const handleRecognitionError = useCallback((event: SpeechRecognitionErrorEvent, context: string) => {
+    // "aborted" is not really an error, it's expected on stop
+    if (event.error === 'aborted') {
+      logger.debug(`Recognition aborted (${context})`);
+      return;
+    }
+
+    logger.error(`Recognition error (${context})`, new Error(event.error));
+    emitDebugEvent({ type: 'stt.error', data: { error: event.error, context } });
+    setError(`Voice recognition error: ${event.error}`);
+    setRecording(false);
+    setIsPaused(false);
+    isStartedRef.current = false;
+    options.onError?.(new Error(event.error));
+  }, [options, setError, setRecording]);
+
+  const createRecognition = useCallback((options: {
+    onStart?: () => void;
+    onEnd?: () => void;
+    onErrorContext: string;
+  }) => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) return null;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      isStartedRef.current = true;
+      options.onStart?.();
+    };
+
+    recognition.onresult = handleRecognitionResult;
+
+    recognition.onerror = (event) => {
+      handleRecognitionError(event, options.onErrorContext);
+    };
+
+    recognition.onend = () => {
+      options.onEnd?.();
+    };
+
+    return recognition;
+  }, [handleRecognitionError, handleRecognitionResult]);
 
   const startRecording = useCallback(() => {
     if (!voiceEnabled) {
@@ -181,108 +281,37 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       // Clean up any existing instance first
       cleanup();
 
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-
       // Reset transcript buffers
       setFinalTranscript("");
       emitInterimUpdate("", true);
       interimTranscriptRef.current = "";
-      resultIndexRef.current = 0;
+      const recognition = createRecognition({
+        onStart: () => {
+          setRecording(true);
+          setIsPaused(false);
+          emitDebugEvent({ type: 'stt.start', data: { lang: 'en-US' } });
+        },
+        onEnd: () => {
+          emitDebugEvent({ type: 'stt.stop', data: { wasPaused: isPaused } });
 
-      recognition.onstart = () => {
-        isStartedRef.current = true;
-        setRecording(true);
-        setIsPaused(false);
-        emitDebugEvent({ type: 'stt.start', data: { lang: 'en-US' } });
-      };
-
-      recognition.onresult = (event) => {
-        // FEEDBACK LOOP PREVENTION: Ignore transcripts while assistant is speaking
-        if (assistantIsSpeakingRef.current) {
-          emitDebugEvent({ 
-            type: 'stt.partial', 
-            data: { ignored: true, reason: 'assistant_speaking' } 
-          });
-          return;
-        }
-        
-        let newFinalText = "";
-        let newInterimText = "";
-
-        // Process only new results from resultIndex
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const text = result[0].transcript;
-
-          if (result.isFinal) {
-            newFinalText += text;
-            emitDebugEvent({ 
-              type: 'stt.final', 
-              data: { 
-                text: text.substring(0, 50), 
-                length: text.length,
-                resultIndex: i 
-              } 
-            });
-          } else {
-            newInterimText += text;
-            emitDebugEvent({ 
-              type: 'stt.partial', 
-              data: { 
-                text: text.substring(0, 30) + (text.length > 30 ? '...' : ''), 
-                length: text.length,
-                resultIndex: i 
-              } 
-            });
+          // Only update state if we're not paused (paused means intentional stop)
+          if (!isPaused) {
+            commitInterimAsFinal();
+            setRecording(false);
+            isStartedRef.current = false;
           }
-        }
+        },
+        onErrorContext: 'start',
+      });
 
-        // Update transcript buffers correctly:
-        // - Final: APPEND new final text
-        // - Interim: REPLACE with current interim (not append!)
-        if (newFinalText) {
-          setFinalTranscript(prev => (prev + " " + newFinalText).trim());
-          // Notify parent of final transcript
-          options.onTranscript?.(newFinalText.trim());
-        }
-        
-        // Always replace interim (this is the key fix for "rapping")
-        interimTranscriptRef.current = newInterimText;
-        emitInterimUpdate(newInterimText);
-      };
-
-      recognition.onerror = (event) => {
-        // "aborted" is not really an error, it's expected on stop
-        if (event.error === 'aborted') {
-          logger.debug("Recognition aborted (expected on stop)");
-          return;
-        }
-        
-        logger.error("Recognition error", new Error(event.error));
-        emitDebugEvent({ type: 'stt.error', data: { error: event.error } });
-        setError(`Voice recognition error: ${event.error}`);
-        setRecording(false);
-        setIsPaused(false);
-        isStartedRef.current = false;
-        options.onError?.(new Error(event.error));
-      };
-
-      recognition.onend = () => {
-        emitDebugEvent({ type: 'stt.stop', data: { wasPaused: isPaused } });
-        
-        // Only update state if we're not paused (paused means intentional stop)
-        if (!isPaused) {
-          commitInterimAsFinal();
-          setRecording(false);
-          isStartedRef.current = false;
-        }
-      };
+      if (!recognition) {
+        const error = new Error("Speech recognition not supported");
+        setError(error.message);
+        options.onError?.(error);
+        return;
+      }
 
       recognitionRef.current = recognition;
-      listenerAttachedRef.current = true;
       emitDebugEvent({ type: 'listener.attach', data: { single: true } });
       
       recognition.start();
@@ -293,7 +322,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       isStartedRef.current = false;
       options.onError?.(error as Error);
     }
-  }, [setRecording, setError, options, cleanup, isPaused, emitInterimUpdate, commitInterimAsFinal, voiceEnabled]);
+  }, [setRecording, setError, options, cleanup, isPaused, emitInterimUpdate, commitInterimAsFinal, voiceEnabled, createRecognition]);
 
   const stopRecording = useCallback(() => {
     emitDebugEvent({ type: 'stt.stop', data: { action: 'user_stop' } });
@@ -323,70 +352,30 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "en-US";
-
-        recognition.onstart = () => {
-          isStartedRef.current = true;
-          emitDebugEvent({ type: 'stt.start', data: { action: 'resume' } });
-        };
-
-        recognition.onresult = (event) => {
-          let newFinalText = "";
-          let newInterimText = "";
-
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i];
-            const text = result[0].transcript;
-
-            if (result.isFinal) {
-              newFinalText += text;
-              emitDebugEvent({ type: 'stt.final', data: { length: text.length } });
-            } else {
-              newInterimText += text;
-              emitDebugEvent({ type: 'stt.partial', data: { length: text.length } });
+        const recognition = createRecognition({
+          onStart: () => {
+            emitDebugEvent({ type: 'stt.start', data: { action: 'resume' } });
+          },
+          onEnd: () => {
+            if (!isPaused) {
+              commitInterimAsFinal();
+              setRecording(false);
+              isStartedRef.current = false;
             }
-          }
+          },
+          onErrorContext: 'resume',
+        });
 
-          if (newFinalText) {
-            setFinalTranscript(prev => (prev + " " + newFinalText).trim());
-            options.onTranscript?.(newFinalText.trim());
-          }
-          interimTranscriptRef.current = newInterimText;
-          emitInterimUpdate(newInterimText);
-        };
-
-        recognition.onerror = (event) => {
-          if (event.error === 'aborted') return;
-          
-          logger.error("Recognition error (resume)", new Error(event.error));
-          emitDebugEvent({ type: 'stt.error', data: { error: event.error } });
-          setError(`Voice recognition error: ${event.error}`);
-          setRecording(false);
-          setIsPaused(false);
-          isStartedRef.current = false;
-          options.onError?.(new Error(event.error));
-        };
-
-        recognition.onend = () => {
-          if (!isPaused) {
-            commitInterimAsFinal();
-            setRecording(false);
-            isStartedRef.current = false;
-          }
-        };
+        if (!recognition) return;
 
         recognitionRef.current = recognition;
-        listenerAttachedRef.current = true;
         emitDebugEvent({ type: 'listener.attach', data: { action: 'resume' } });
-        
+
         recognition.start();
         logger.info("Recording resumed");
       }
     }
-  }, [isPaused, setRecording, setError, options, emitInterimUpdate, commitInterimAsFinal]);
+  }, [isPaused, setRecording, options, commitInterimAsFinal, createRecognition]);
 
   const toggleRecording = useCallback(() => {
     if (isRecording) {
