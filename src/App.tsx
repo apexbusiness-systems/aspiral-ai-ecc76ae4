@@ -24,6 +24,9 @@ import VoiceYourChaos from "./pages/steps/VoiceYourChaos";
 import WatchItVisualize from "./pages/steps/WatchItVisualize";
 import AnswerQuestions from "./pages/steps/AnswerQuestions";
 import GetBreakthrough from "./pages/steps/GetBreakthrough";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { VersionStamp } from "@/components/VersionStamp";
+import { DebugOverlay } from "@/components/DebugOverlay";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +34,9 @@ const App = () => (
   <I18nextProvider i18n={i18n}>
     <QueryClientProvider client={queryClient}>
       <SentinelProvider />
+      <UpdatePrompt />
+      <VersionStamp />
+      <DebugOverlay />
       <AuthProvider>
         <TooltipProvider>
           <Toaster />

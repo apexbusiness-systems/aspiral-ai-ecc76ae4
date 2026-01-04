@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { OmniLinkAdapter } from "@/integrations/omnilink";
 import { createUpdateGuard } from "@/lib/updateGuard";
+import { useSafeArea } from "@/hooks/useSafeArea";
 
 export interface SpiralChatHandle {
   toggleRecording: () => void;
@@ -51,6 +52,7 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const insets = useSafeArea();
   
   // CRITICAL FIX: Track last spoken question to prevent "machine gun" audio loop
   const lastSpokenQuestionRef = useRef<string | null>(null);
@@ -470,7 +472,13 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
 
   return (
     <LayoutGroup>
-    <div className={cn("flex flex-col lg:flex-row relative", hasActiveHeader ? "h-[calc(100vh-73px-52px)] mt-[52px]" : "h-[calc(100vh-73px)]")}>
+    <div
+      className={cn("flex flex-col lg:flex-row relative")}
+      style={{
+        height: `calc(100vh - ${insets.bottom} - ${insets.top})`,
+        paddingTop: hasActiveHeader ? '52px' : '0'
+      }}
+    >
       {/* Phase 4: Film Grain Overlay for Cinematic Polish */}
       <FilmGrainCSS intensity={0.08} />
       {/* Floating Menu Button */}
@@ -558,7 +566,7 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
       <div
         className={`relative border-b lg:border-b-0 lg:border-r border-border/30 transition-all duration-500 ${
           is3DExpanded 
-            ? "h-[60vh] lg:h-full lg:w-2/3" 
+            ? "h-[50vh] lg:h-full lg:w-2/3"
             : "h-48 lg:h-full lg:w-1/3"
         }`}
       >
@@ -717,7 +725,10 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
         />
 
         {/* Input Area */}
-        <div className="border-t border-border/30 glass-card rounded-none border-x-0 border-b-0 p-4">
+        <div
+          className="border-t border-border/30 glass-card rounded-none border-x-0 border-b-0 p-4"
+          style={{ paddingBottom: `max(1rem, ${insets.bottom})` }}
+        >
           <div className="mx-auto max-w-2xl">
             {/* Mic Button with Stop/Pause controls + TTS Toggle */}
             <div className="mb-5 flex items-center justify-center gap-4">

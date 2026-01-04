@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { Session, Message, Entity, Connection, FrictionPoint, SessionStatus } from "@/lib/types";
 import { createLogger } from "@/lib/logger";
 import { generateIdempotencyKey } from "@/lib/idempotent";
+import { migrateState, CURRENT_SCHEMA_VERSION } from "@/lib/state/migration";
 
 const logger = createLogger("SessionStore");
 
@@ -14,6 +15,9 @@ interface FrictionVisualization {
 }
 
 interface SessionState {
+  // Versioning
+  version: number;
+
   // Current session
   currentSession: Session | null;
   messages: Message[];
@@ -75,6 +79,7 @@ const initialSession = (): Session => ({
 export const useSessionStore = create<SessionState>()(
   persist(
     (set, get) => ({
+      version: CURRENT_SCHEMA_VERSION,
       currentSession: null,
       messages: [],
       activeFriction: null,
@@ -330,10 +335,35 @@ export const useSessionStore = create<SessionState>()(
     }),
     {
       name: "aspiral-session",
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
+        version: state.version,
         currentSession: state.currentSession,
         messages: state.messages,
       }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onRehydrateStorage: () => (state: any) => {
+        if (!state) return;
+
+        try {
+          // Perform migration on hydration
+          const migrated = migrateState(state);
+
+          // Apply migrated state if it changed
+          if (migrated !== state) {
+            // We need to be careful here not to trigger infinite loops,
+            // but since this is onRehydrate, it happens once on mount.
+            // Using Object.assign to mutate the state object that Zustand uses
+            Object.assign(state, migrated);
+          }
+        } catch (e) {
+          logger.error("Failed to migrate state", e as Error);
+          // Safety fallback: reset broken state
+          state.currentSession = null;
+          state.messages = [];
+          state.version = CURRENT_SCHEMA_VERSION;
+        }
+      }
     }
   )
 );

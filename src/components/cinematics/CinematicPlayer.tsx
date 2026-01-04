@@ -1,455 +1,73 @@
-/**
- * Cinematic Player - Main Orchestrator
- * Handles variant selection, audio, analytics, and skip functionality
- * Includes fallback timeout for WebGL failures
- * Integrated with Breakthrough V2 Director for enhanced variety and reliability
- */
+import { useRef, useEffect, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { useLifecycleStore } from "@/lib/cinematics/LifecycleController";
+import { SpiralAscend } from "./SpiralAscend";
+import { createLogger } from "@/lib/logger";
 
-import { useState, useEffect, useRef, Suspense, Component, ReactNode, useCallback } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
-import * as THREE from 'three';
+const logger = createLogger("CinematicPlayer");
 
-// Cinematic Variants
-import { SpiralAscend } from './SpiralAscend';
-import { ParticleExplosion } from './ParticleExplosion';
-import { PortalReveal } from './PortalReveal';
-import { MatrixDecode } from './MatrixDecode';
-import { SpaceWarp } from './SpaceWarp';
-import { BreakthroughFallback } from './BreakthroughFallback';
-
-// Breakthrough V2 System
-import { useBreakthroughDirector } from '@/hooks/useBreakthroughDirector';
-import { isBreakthroughV2Enabled } from '@/lib/breakthrough/types';
-import type { MutatedVariant, QualityTier } from '@/lib/breakthrough/types';
-
-// Utilities
-import { getCinematicConfig, getRandomVariant } from '@/lib/cinematics/configs';
-import { AudioManager } from '@/lib/cinematics/AudioManager';
-import { AdaptiveQuality, prefersReducedMotion, calculateParticleCount, detectDeviceTier, detectDeviceCapabilities } from '@/lib/performance/optimizer';
-import { analytics } from '@/lib/analytics';
-import type { CinematicPlayerProps, CinematicVariant } from '@/lib/cinematics/types';
-
-// Error Boundary for WebGL crashes
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
-
-class WebGLErrorBoundary extends Component<{ children: ReactNode; onError: () => void }, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false };
-
-  static getDerivedStateFromError(): ErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    console.warn('[CinematicPlayer] WebGL error caught:', error.message);
-    this.props.onError();
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return null; // Render nothing, let fallback handle it
-    }
-    return this.props.children;
-  }
-}
-
-// Maximum cinematic duration before forcing completion (fallback)
-const MAX_CINEMATIC_DURATION_MS = 15000; // 15 seconds
-
-// FPS Reporter component for V2 director integration
-function FPSReporter({ onFPS }: { onFPS: (fps: number) => void }) {
-  const lastTime = useRef(performance.now());
-  
-  useFrame(() => {
-    const now = performance.now();
-    const delta = now - lastTime.current;
-    lastTime.current = now;
-    
-    if (delta > 0) {
-      const fps = 1000 / delta;
-      onFPS(fps);
-    }
-  });
-  
-  return null;
-}
-
-// Extended props interface for V2
-interface CinematicPlayerPropsV2 extends CinematicPlayerProps {
-  sessionEntities?: Array<{ type: string; label: string; metadata?: { valence?: number } }>;
-  breakthroughType?: string;
+interface CinematicPlayerProps {
+  variant?: any;
+  onComplete?: () => void;
+  onSkip?: () => void;
+  allowSkip?: boolean;
+  autoPlay?: boolean;
+  enableAnalytics?: boolean;
+  className?: string;
 }
 
 export function CinematicPlayer({
-  variant,
   onComplete,
-  onSkip,
-  onStart,
-  allowSkip = true,
-  autoPlay = true,
-  enableAnalytics = true,
-  reducedMotion = false,
-  className = '',
-  sessionEntities = [],
-  breakthroughType,
-}: CinematicPlayerPropsV2) {
-  // Check if V2 is enabled
-  const useV2 = isBreakthroughV2Enabled();
-  const deviceTier = detectDeviceTier();
-  
-  // V2 Director integration
-  const {
-    phase: directorPhase,
-    variant: v2Variant,
-    isSafeMode,
-    prewarm,
-    play: playDirector,
-    complete: completeDirector,
-    abort: abortDirector,
-    reportFPS,
-  } = useBreakthroughDirector({
-    onComplete,
-    onAbort: (reason) => {
-      console.log('[CinematicPlayer] V2 aborted:', reason);
-      onSkip?.();
-    },
-    qualityTier: deviceTier,
-    reducedMotion,
-  });
+  className = "",
+}: CinematicPlayerProps) {
+  const { phase, play, settle, complete, isPrewarmed, prewarm } = useLifecycleStore();
+  const [hasStarted, setHasStarted] = useState(false);
 
-  // Select variant (V1 fallback)
-  const [selectedVariant] = useState<CinematicVariant>(variant || getRandomVariant());
-  const config = getCinematicConfig(selectedVariant);
-
-  // Performance & Quality
-  const adaptiveQuality = useRef<AdaptiveQuality | null>(null);
-  const [qualitySettings, setQualitySettings] = useState<ReturnType<AdaptiveQuality['getQualitySettings']>>({
-    particleMultiplier: 1,
-    enablePostProcessing: true,
-    enableShadows: true,
-    renderScale: 1,
-    antialias: true,
-  });
-
-  // Audio
-  const audioManager = useRef<AudioManager | null>(null);
-
-  // State
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [particleCount, setParticleCount] = useState(config.particles?.count || 1000);
-  const [hasCompleted, setHasCompleted] = useState(false);
-  const [webglFailed, setWebglFailed] = useState(false);
-  const startTimeRef = useRef<number>(0);
-  const fallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [v2Initialized, setV2Initialized] = useState(false);
-
-  // Check for reduced motion preference
-  const shouldReduceMotion = reducedMotion || prefersReducedMotion();
-
-  // Handle completion (deduplicated)
-  const handleComplete = useRef(() => {
-    if (hasCompleted) return;
-    setHasCompleted(true);
-    setIsPlaying(false);
-    audioManager.current?.stop();
-
-    // Clear fallback timeout
-    if (fallbackTimeoutRef.current) {
-      clearTimeout(fallbackTimeoutRef.current);
-      fallbackTimeoutRef.current = null;
-    }
-
-    if (enableAnalytics) {
-      const duration = performance.now() - startTimeRef.current;
-      const metrics = adaptiveQuality.current?.getMetrics();
-      const capabilities = detectDeviceCapabilities();
-
-      analytics.trackCinematic('completed', {
-        variant: selectedVariant,
-        duration,
-      });
-
-      if (metrics) {
-        analytics.trackPerformance({
-          variant: selectedVariant,
-          ...metrics,
-          duration,
-          particleCount,
-          deviceType: analytics.getDeviceType(),
-          // Enhanced GPU context for debugging
-          gpuTier: capabilities.gpuTier,
-          gpuRenderer: capabilities.gpuRenderer,
-          qualityMultiplier: qualitySettings.particleMultiplier,
-          wasAdaptiveReduced: qualitySettings.particleMultiplier < 1.0,
-        });
+  // Auto-start logic
+  useEffect(() => {
+    if (!hasStarted) {
+      if (!isPrewarmed) {
+        prewarm();
       }
+      play();
+      setHasStarted(true);
     }
+  }, [hasStarted, isPrewarmed, prewarm, play]);
 
-    onComplete?.();
-  }).current;
-
-  // Handle WebGL/canvas errors - show fallback UI then complete
-  const handleWebGLError = useRef(() => {
-    console.warn('[CinematicPlayer] WebGL error - showing fallback UI');
-    setWebglFailed(true);
-    audioManager.current?.stop();
-
-    // Brief delay to show fallback UI before completion
+  // Handle completion from the visual component
+  const handleVisualComplete = () => {
+    logger.info("Visuals complete");
+    settle();
+    // Short delay for settle phase before full completion
     setTimeout(() => {
-      handleComplete();
-    }, 1500);
-  }).current;
-
-  // Initialize V2 if enabled
-  useEffect(() => {
-    if (useV2 && !v2Initialized) {
-      setV2Initialized(true);
-      prewarm(sessionEntities, breakthroughType)
-        .then((variant) => {
-          console.log('[CinematicPlayer] V2 prewarmed:', variant.id);
-          if (autoPlay) {
-            playDirector(variant);
-          }
-        })
-        .catch((err) => {
-          console.warn('[CinematicPlayer] V2 prewarm failed:', err);
-        });
-    }
-  }, [useV2, v2Initialized, sessionEntities, breakthroughType, autoPlay, prewarm, playDirector]);
-
-  // Initialize (V1 mode)
-  useEffect(() => {
-    // Skip V1 init if V2 is enabled
-    if (useV2) return;
-    
-    // Create adaptive quality manager
-    adaptiveQuality.current = new AdaptiveQuality(setQualitySettings);
-    adaptiveQuality.current.start();
-
-    // Create audio manager
-    audioManager.current = new AudioManager(config.audio);
-    audioManager.current.preload();
-
-    // Track start event
-    if (enableAnalytics) {
-      analytics.trackCinematic('started', {
-        variant: selectedVariant,
-      });
-    }
-
-    startTimeRef.current = performance.now();
-    onStart?.();
-
-    if (autoPlay) {
-      setIsPlaying(true);
-      audioManager.current.play();
-    }
-
-    // FALLBACK: Force completion after max duration to prevent getting stuck
-    fallbackTimeoutRef.current = setTimeout(() => {
-      console.warn('[CinematicPlayer] Fallback timeout triggered - forcing completion');
-      handleComplete();
-    }, MAX_CINEMATIC_DURATION_MS);
-
-    return () => {
-      // Cleanup
-      adaptiveQuality.current?.dispose();
-      audioManager.current?.dispose();
-      if (fallbackTimeoutRef.current) {
-        clearTimeout(fallbackTimeoutRef.current);
-      }
-    };
-  }, [useV2, selectedVariant, config, autoPlay, enableAnalytics, onStart, handleComplete]);
-
-  // Update particle count based on quality
-  useEffect(() => {
-    if (config.particles) {
-      const newCount = calculateParticleCount(config.particles.count, qualitySettings);
-      setParticleCount(newCount);
-    }
-  }, [qualitySettings, config.particles]);
-
-  // Handle skip
-  const handleSkip = () => {
-    if (!allowSkip || !isPlaying || hasCompleted) return;
-
-    setIsPlaying(false);
-    audioManager.current?.stop(true);
-
-    if (enableAnalytics) {
-      const duration = performance.now() - startTimeRef.current;
-      const progress = (duration / config.duration) * 100;
-
-      analytics.trackCinematic('skipped', {
-        variant: selectedVariant,
-        progress,
-      });
-    }
-
-    onSkip?.();
-    handleComplete(); // Treat skip as completion
+      complete();
+      onComplete?.();
+    }, 1000);
   };
 
-  // Keyboard shortcut for skip (Escape)
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && allowSkip) {
-        handleSkip();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [allowSkip, isPlaying, hasCompleted]);
-
-  // Update adaptive quality
-  useEffect(() => {
-    const interval = setInterval(() => {
-      adaptiveQuality.current?.update();
-    }, 16); // Update every frame (~60fps)
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Handle canvas context loss
-  const handleContextLost = (event: Event) => {
-    event.preventDefault();
-    console.warn('[CinematicPlayer] WebGL context lost');
-    handleWebGLError();
-  };
-
-  // Render variant component
-  const renderVariant = () => {
-    const props = { onComplete: handleComplete, particleCount };
-
-    switch (selectedVariant) {
-      case 'spiral_ascend':
-        return <SpiralAscend {...props} />;
-      case 'particle_explosion':
-        return <ParticleExplosion {...props} />;
-      case 'portal_reveal':
-        return <PortalReveal {...props} />;
-      case 'matrix_decode':
-        return <MatrixDecode {...props} />;
-      case 'space_warp':
-        return <SpaceWarp {...props} />;
-      default:
-        return <SpiralAscend {...props} />;
-    }
-  };
-
-  // Get post-processing effects for this variant
-  const renderPostProcessing = () => {
-    if (!qualitySettings.enablePostProcessing || shouldReduceMotion) {
-      return null;
-    }
-
-    const effects = config.effects || [];
-    const hasBloom = effects.some((e) => e.type === 'bloom');
-    const hasChromaticAberration = effects.some((e) => e.type === 'chromaticAberration');
-
-    return (
-      <EffectComposer>
-        {hasBloom && (
-          <Bloom
-            intensity={effects.find((e) => e.type === 'bloom')?.intensity || 1.5}
-            luminanceThreshold={0.8}
-            luminanceSmoothing={0.9}
-            blendFunction={BlendFunction.ADD}
-          />
-        )}
-        {hasChromaticAberration && (
-          <ChromaticAberration
-            offset={
-              new THREE.Vector2(0.002, 0.002).multiplyScalar(
-                effects.find((e) => e.type === 'chromaticAberration')?.intensity || 1.0
-              )
-            }
-            blendFunction={BlendFunction.NORMAL}
-            radialModulation={false}
-            modulationOffset={0}
-          />
-        )}
-      </EffectComposer>
-    );
-  };
-
-  // If already completed, render nothing
-  if (hasCompleted) {
+  // If not in active phase, render nothing (or fade out)
+  if (phase === 'idle' || phase === 'complete') {
     return null;
   }
 
   return (
     <div className={`fixed inset-0 z-50 ${className}`}>
-      {/* 3D Canvas with Error Boundary */}
-      <WebGLErrorBoundary onError={handleWebGLError}>
-        <Canvas
-          camera={{ position: [0, 0, 10], fov: 60 }}
-          gl={{
-            antialias: qualitySettings.antialias,
-            alpha: true,
-            powerPreference: 'high-performance',
-          }}
-          dpr={qualitySettings.renderScale}
-          onCreated={({ gl }) => {
-            gl.domElement.addEventListener('webglcontextlost', handleContextLost);
-          }}
-        >
-          <Suspense fallback={null}>
-            <color attach="background" args={['#000000']} />
-
-            {/* FPS Reporter for V2 Director */}
-            {useV2 && directorPhase === 'playing' && (
-              <FPSReporter onFPS={reportFPS} />
-            )}
-
-            {/* V2 Safe Mode Fallback */}
-            {useV2 && isSafeMode && directorPhase === 'playing' && (
-              <BreakthroughFallback 
-                onComplete={completeDirector}
-                color={v2Variant?.finalColors?.[0] || '#60a5fa'}
-              />
-            )}
-
-            {/* V2 Normal Playback or V1 Cinematic Variant */}
-            {!useV2 && isPlaying && renderVariant()}
-            {useV2 && !isSafeMode && directorPhase === 'playing' && renderVariant()}
-
-            {/* Post-Processing */}
-            {renderPostProcessing()}
-          </Suspense>
-        </Canvas>
-      </WebGLErrorBoundary>
-
-      {/* WebGL Failure Fallback UI */}
-      {webglFailed && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-purple-900/90 to-indigo-900/90 z-10">
-          <div className="text-center animate-pulse">
-            <div className="text-5xl mb-4">✨</div>
-            <div className="text-3xl text-white font-display mb-4">Breakthrough Achieved!</div>
-            <div className="text-lg text-purple-200">Preparing your insight...</div>
-          </div>
-        </div>
-      )}
-
-      {/* Skip Button */}
-      {allowSkip && isPlaying && (
-        <button
-          onClick={handleSkip}
-          className="absolute bottom-8 right-8 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors border border-white/20 font-medium"
-          aria-label="Skip cinematic"
-        >
-          Skip (Esc)
-        </button>
-      )}
-
-      {/* Screen Reader Announcement */}
-      <div className="sr-only" role="status" aria-live="polite">
-        {isPlaying ? `Playing ${config.displayName} cinematic` : 'Cinematic complete'}
-      </div>
+      <Canvas
+        camera={{ position: [0, 0, 10], fov: 45 }}
+        gl={{
+          antialias: true,
+          alpha: true,
+          powerPreference: "high-performance"
+        }}
+        dpr={[1, 2]} // Cap DPR for performance
+      >
+        <color attach="background" args={['#000000']} />
+        <ambientLight intensity={0.5} />
+        <SpiralAscend
+            onComplete={handleVisualComplete}
+            particleCount={1500} // Tuned for mid-tier
+        />
+      </Canvas>
     </div>
   );
 }

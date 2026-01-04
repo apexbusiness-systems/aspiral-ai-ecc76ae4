@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt", // Changed from autoUpdate to prompt to allow user control
       includeAssets: [
         "icons/icon.svg",
         "icons/favicon-32x32.png",
@@ -71,6 +71,8 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^\/supabase/],
+        // Safety: Ensure we don't cache index.html too aggressively
+        // This is crucial for PWA updates to be detected
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -109,4 +111,10 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Add build define for VersionStamp
+  define: {
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
+    // In a real CI/CD, this would be injected. Fallback for local.
+    'import.meta.env.VITE_COMMIT_HASH': JSON.stringify('DEV-' + Math.random().toString(36).substring(7))
+  }
 }));
