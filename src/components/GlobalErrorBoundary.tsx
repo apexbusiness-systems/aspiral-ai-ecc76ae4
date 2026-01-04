@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { analytics } from '@/lib/analytics';
 
 interface Props {
   children: ReactNode;
@@ -16,6 +17,8 @@ interface State {
  * instead of a blank screen on iOS/Android.
  */
 class GlobalErrorBoundary extends Component<Props, State> {
+  private hasLoggedFatal = false;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -35,6 +38,23 @@ class GlobalErrorBoundary extends Component<Props, State> {
     // Log error for debugging - critical for mobile diagnostics
     console.error('[GlobalErrorBoundary] Caught error:', error);
     console.error('[GlobalErrorBoundary] Component stack:', errorInfo.componentStack);
+
+    if (!import.meta.env.DEV && !this.hasLoggedFatal) {
+      this.hasLoggedFatal = true;
+      const trimmedStack = error.stack ? error.stack.slice(0, 2000) : undefined;
+      const deviceMemory =
+        typeof navigator !== 'undefined' && 'deviceMemory' in navigator
+          ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+          : undefined;
+
+      analytics.trackFatalUiError({
+        message: error.message || 'Unknown error',
+        stack: trimmedStack,
+        route: window.location.href,
+        userAgent: navigator.userAgent,
+        deviceMemory,
+      });
+    }
   }
 
   handleReload = (): void => {

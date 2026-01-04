@@ -80,6 +80,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   const isStartedRef = useRef(false); // Idempotent guard
   const listenerAttachedRef = useRef(false); // Prevent duplicate listeners
   const resultIndexRef = useRef(0); // Track processed results
+  const interimTranscriptRef = useRef("");
+  const lastInterimEmitRef = useRef(0);
+  const INTERIM_UPDATE_INTERVAL = 150;
 
   const { isRecording, setRecording, setError } = useSessionStore();
   
@@ -113,8 +116,27 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     isStartedRef.current = false;
     listenerAttachedRef.current = false;
     resultIndexRef.current = 0;
+    interimTranscriptRef.current = "";
     emitDebugEvent({ type: 'listener.detach', data: { reason: 'cleanup' } });
   }, []);
+
+  const emitInterimUpdate = useCallback((text: string, force = false) => {
+    const now = Date.now();
+    if (!force && now - lastInterimEmitRef.current < INTERIM_UPDATE_INTERVAL) {
+      return;
+    }
+    lastInterimEmitRef.current = now;
+    setInterimTranscript(text);
+  }, []);
+
+  const commitInterimAsFinal = useCallback(() => {
+    const interim = interimTranscriptRef.current.trim();
+    if (!interim) return;
+    setFinalTranscript(prev => (prev + " " + interim).trim());
+    options.onTranscript?.(interim);
+    interimTranscriptRef.current = "";
+    emitInterimUpdate("", true);
+  }, [emitInterimUpdate, options]);
 
   const startRecording = useCallback(() => {
     // Idempotent guard - prevent double-start
@@ -144,7 +166,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
       // Reset transcript buffers
       setFinalTranscript("");
-      setInterimTranscript("");
+      emitInterimUpdate("", true);
+      interimTranscriptRef.current = "";
       resultIndexRef.current = 0;
 
       recognition.onstart = () => {
@@ -205,7 +228,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         }
         
         // Always replace interim (this is the key fix for "rapping")
-        setInterimTranscript(newInterimText);
+        interimTranscriptRef.current = newInterimText;
+        emitInterimUpdate(newInterimText);
       };
 
       recognition.onerror = (event) => {
@@ -229,6 +253,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         
         // Only update state if we're not paused (paused means intentional stop)
         if (!isPaused) {
+          commitInterimAsFinal();
           setRecording(false);
           isStartedRef.current = false;
         }
@@ -246,15 +271,16 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       isStartedRef.current = false;
       options.onError?.(error as Error);
     }
-  }, [setRecording, setError, options, cleanup, isPaused]);
+  }, [setRecording, setError, options, cleanup, isPaused, emitInterimUpdate, commitInterimAsFinal]);
 
   const stopRecording = useCallback(() => {
     emitDebugEvent({ type: 'stt.stop', data: { action: 'user_stop' } });
+    commitInterimAsFinal();
     cleanup();
     setRecording(false);
     setIsPaused(false);
-    setInterimTranscript(""); // Clear interim on stop
-  }, [setRecording, cleanup]);
+    emitInterimUpdate("", true); // Clear interim on stop
+  }, [setRecording, cleanup, commitInterimAsFinal, emitInterimUpdate]);
 
   const pauseRecording = useCallback(() => {
     if (recognitionRef.current && isRecording && !isPaused) {
@@ -306,7 +332,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
             setFinalTranscript(prev => (prev + " " + newFinalText).trim());
             options.onTranscript?.(newFinalText.trim());
           }
-          setInterimTranscript(newInterimText);
+          interimTranscriptRef.current = newInterimText;
+          emitInterimUpdate(newInterimText);
         };
 
         recognition.onerror = (event) => {
@@ -323,6 +350,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
         recognition.onend = () => {
           if (!isPaused) {
+            commitInterimAsFinal();
             setRecording(false);
             isStartedRef.current = false;
           }
@@ -336,7 +364,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         logger.info("Recording resumed");
       }
     }
-  }, [isPaused, setRecording, setError, options]);
+  }, [isPaused, setRecording, setError, options, emitInterimUpdate, commitInterimAsFinal]);
 
   const toggleRecording = useCallback(() => {
     if (isRecording) {

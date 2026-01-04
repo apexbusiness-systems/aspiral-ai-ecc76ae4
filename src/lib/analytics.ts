@@ -457,6 +457,35 @@ export function trackCinematicError(data: CinematicErrorData) {
 }
 
 // ============================================
+// FATAL UI ERROR TRACKING
+// ============================================
+
+export interface FatalUiErrorData {
+  message: string;
+  stack?: string;
+  route: string;
+  userAgent: string;
+  deviceMemory?: number;
+}
+
+export function trackFatalUiError(data: FatalUiErrorData) {
+  if (!isInitialized) initAnalytics();
+
+  try {
+    posthog.capture('fatal_ui_error', {
+      ...data,
+      timestamp: Date.now(),
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('[Analytics] fatal_ui_error:', data);
+    }
+  } catch (error) {
+    console.error('[Analytics] Failed to track fatal_ui_error:', error);
+  }
+}
+
+// ============================================
 // UTILITY FUNCTIONS
 // ============================================
 
@@ -519,6 +548,7 @@ export const analytics = {
   
   // Feature usage
   trackFeatureUsed,
+  trackFatalUiError,
   
   // Cinematic tracking
   trackCinematic,

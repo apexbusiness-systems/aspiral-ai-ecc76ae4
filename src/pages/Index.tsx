@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { SpiralChat } from "@/components/SpiralChat";
+import { SpiralChat, type SpiralChatHandle } from "@/components/SpiralChat";
 import { Toaster } from "@/components/ui/toaster";
 import { AuroraBackground } from "@/components/effects/AuroraBackground";
 import { BreakthroughOverlay } from "@/components/effects/BreakthroughOverlay";
@@ -18,7 +18,7 @@ const Index = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<MobileTab>("home");
-  const [externalRecordingTrigger, setExternalRecordingTrigger] = useState<number>(0);
+  const chatRef = useRef<SpiralChatHandle | null>(null);
   
   // Get recording state from session store (shared with SpiralChat)
   const isRecording = useSessionStore((state) => state.isRecording);
@@ -32,11 +32,10 @@ const Index = () => {
         navigate("/sessions");
         break;
       case "settings":
-        // Could open settings modal or navigate
+        chatRef.current?.openSettings();
         break;
       case "record":
-        // Trigger recording toggle in SpiralChat via increment
-        setExternalRecordingTrigger(prev => prev + 1);
+        chatRef.current?.toggleRecording();
         break;
       default:
         break;
@@ -110,7 +109,7 @@ const Index = () => {
 
       {/* Main Chat Area - add bottom padding on mobile for nav */}
       <main className={`relative z-10 flex-1 ${isMobile ? 'pb-16' : ''}`}>
-        <SpiralChat externalRecordingTrigger={externalRecordingTrigger} />
+        <SpiralChat ref={chatRef} />
       </main>
 
       {/* Mobile Navigation */}
@@ -126,4 +125,3 @@ const Index = () => {
 };
 
 export default Index;
-

@@ -16,7 +16,7 @@
  * 6. Fixed positioning with translate - standard modal centering
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Volume2, Eye, Brain, RotateCcw } from "lucide-react";
@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createUpdateGuard } from "@/lib/updateGuard";
 
 export interface SettingsState {
   // Voice settings
@@ -81,6 +82,62 @@ const defaultSettings: SettingsState = {
   soundEffects: true,
 };
 
+const SETTINGS_STORAGE_KEY = "aspiral_settings_v1";
+
+const isSettingsState = (value: unknown): value is SettingsState => {
+  if (!value || typeof value !== "object") return false;
+  const v = value as SettingsState;
+  return (
+    typeof v.voiceEnabled === "boolean" &&
+    typeof v.voiceVolume === "number" &&
+    typeof v.speechRate === "number" &&
+    typeof v.voiceType === "string" &&
+    typeof v.autoListen === "boolean" &&
+    (v.theme === "dark" || v.theme === "light" || v.theme === "system") &&
+    typeof v.animationsEnabled === "boolean" &&
+    typeof v.reducedMotion === "boolean" &&
+    typeof v.show3DScene === "boolean" &&
+    typeof v.particleEffects === "boolean" &&
+    typeof v.glowEffects === "boolean" &&
+    typeof v.ultraFastMode === "boolean" &&
+    typeof v.maxQuestions === "number" &&
+    typeof v.autoBreakthrough === "boolean" &&
+    typeof v.frustrationDetection === "boolean" &&
+    typeof v.verboseResponses === "boolean" &&
+    typeof v.soundEffects === "boolean"
+  );
+};
+
+const areSettingsEqual = (a: SettingsState, b: SettingsState) =>
+  a.voiceEnabled === b.voiceEnabled &&
+  a.voiceVolume === b.voiceVolume &&
+  a.speechRate === b.speechRate &&
+  a.voiceType === b.voiceType &&
+  a.autoListen === b.autoListen &&
+  a.theme === b.theme &&
+  a.animationsEnabled === b.animationsEnabled &&
+  a.reducedMotion === b.reducedMotion &&
+  a.show3DScene === b.show3DScene &&
+  a.particleEffects === b.particleEffects &&
+  a.glowEffects === b.glowEffects &&
+  a.ultraFastMode === b.ultraFastMode &&
+  a.maxQuestions === b.maxQuestions &&
+  a.autoBreakthrough === b.autoBreakthrough &&
+  a.frustrationDetection === b.frustrationDetection &&
+  a.verboseResponses === b.verboseResponses &&
+  a.soundEffects === b.soundEffects;
+
+const loadStoredSettings = (): SettingsState | null => {
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as unknown;
+    return isSettingsState(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
 interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -102,10 +159,17 @@ export function SettingsPanel({
   settings: externalSettings,
   onSettingsChange,
 }: SettingsPanelProps) {
-  const [settings, setSettings] = useState<SettingsState>(
-    externalSettings || defaultSettings
-  );
+  const [settings, setSettings] = useState<SettingsState>(() => {
+    if (externalSettings) return externalSettings;
+    const stored = loadStoredSettings();
+    return stored ?? defaultSettings;
+  });
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+  const settingsUpdateGuard = useMemo(
+    () => createUpdateGuard({ name: "SettingsPanel.setSettings" }),
+    []
+  );
+  const lastSavedRef = useRef<string | null>(null);
 
   // Create/get portal container on mount
   useEffect(() => {
@@ -154,24 +218,48 @@ export function SettingsPanel({
     key: K,
     value: SettingsState[K]
   ) => {
+    settingsUpdateGuard();
     setSettings(prev => {
+      if (prev[key] === value) {
+        return prev;
+      }
       const newSettings = { ...prev, [key]: value };
       onSettingsChange?.(newSettings);
       return newSettings;
     });
-  }, [onSettingsChange]);
+  }, [onSettingsChange, settingsUpdateGuard]);
 
   const resetToDefaults = useCallback(() => {
-    setSettings(defaultSettings);
-    onSettingsChange?.(defaultSettings);
-  }, [onSettingsChange]);
+    settingsUpdateGuard();
+    setSettings(prev => {
+      if (areSettingsEqual(prev, defaultSettings)) {
+        return prev;
+      }
+      onSettingsChange?.(defaultSettings);
+      return defaultSettings;
+    });
+  }, [onSettingsChange, settingsUpdateGuard]);
 
   // Sync with external settings
   useEffect(() => {
-    if (externalSettings) {
+    if (externalSettings && !areSettingsEqual(externalSettings, settings)) {
+      settingsUpdateGuard();
       setSettings(externalSettings);
     }
-  }, [externalSettings]);
+  }, [externalSettings, settings, settingsUpdateGuard]);
+
+  // Persist settings locally (idempotent)
+  useEffect(() => {
+    try {
+      const serialized = JSON.stringify(settings);
+      if (lastSavedRef.current !== serialized) {
+        localStorage.setItem(SETTINGS_STORAGE_KEY, serialized);
+        lastSavedRef.current = serialized;
+      }
+    } catch {
+      // Ignore storage failures (e.g. private mode)
+    }
+  }, [settings]);
 
   const modalContent = (
     <AnimatePresence>
