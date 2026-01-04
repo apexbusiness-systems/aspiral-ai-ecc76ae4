@@ -23,6 +23,9 @@ import { registerSTTController, updateListeningState, isGated } from "@/lib/audi
 import { addBreadcrumb } from "@/lib/debugOverlay";
 import { featureFlags } from "@/lib/featureFlags";
 
+// Audit Fix: Explicit keywords to stop recording
+const VOICE_STOP_KEYWORDS = ['stop', 'pause', 'end session', 'shut up', 'hold on'];
+
 const logger = createLogger("useVoiceInput");
 
 // Audit Fix: Explicit keywords to stop recording
@@ -218,13 +221,13 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     let newFinalText = "";
     let newInterimText = "";
 
-    // Process only new results from resultIndex
+      // Process only new results from resultIndex
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const result = event.results[i];
       const text = result[0].transcript;
 
       // Audit Fix: Keyword Detection
-      if (STOP_KEYWORDS.some(keyword => text.toLowerCase().includes(keyword))) {
+      if (VOICE_STOP_KEYWORDS.some(keyword => text.toLowerCase().includes(keyword))) {
         stopRecording();
         return;
       }

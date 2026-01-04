@@ -56,7 +56,6 @@ export function PremiumSpiral({
   const flow = useMemo(() => {
     // Audit Fix: Changed from Sphere to Tetrahedron for "Crystalline/Stardust" look
     const geometry = new THREE.TetrahedronGeometry(0.08, 0);
-
     // Audit Fix: Organic material settings
     const material = new THREE.MeshStandardMaterial({
       color: new THREE.Color("#b8c1ec"),
@@ -68,13 +67,11 @@ export function PremiumSpiral({
     });
 
     const instancedFlow = new InstancedFlow(count, 1, geometry, material);
-
     // Audit Fix: Randomize scales and rotations for natural variety
     for (let i = 0; i < count; i++) {
         const scale = 0.5 + Math.random() * 1.5;
         instancedFlow.object3D.instanceMatrix.needsUpdate = true;
     }
-
     return instancedFlow;
   }, [count]);
 
@@ -88,7 +85,6 @@ export function PremiumSpiral({
       flow.setCurve(i, 0);
       const offset = (i / count);
       flow.moveIndividualAlongCurve(i, offset);
-
       // Audit Fix: Add random rotation to each instance to break the "machine" look
       const obj = flow.object3D;
       // Note: InstancedFlow handles positions, but we can try to inject scale/rotation noise
@@ -102,10 +98,8 @@ export function PremiumSpiral({
     if (isPaused || reducedMotion) return;
     const speed = speedRef.current * delta;
     flow.moveAlongCurve(speed);
-
     // Audit Fix: Slowly rotate the entire spiral container for "drift"
     flow.object3D.rotation.y += delta * 0.05;
-
     invalidate();
   });
 

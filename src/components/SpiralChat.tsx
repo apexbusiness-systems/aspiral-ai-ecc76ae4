@@ -59,7 +59,6 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
 
   // Audit Fix: PWA Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
   // Audit Fix: Global listener for PWA install
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -67,11 +66,9 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
       setDeferredPrompt(e);
       // Optional: Show a toast that app is ready to install
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
-
   const handleInstallPwa = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -733,7 +730,7 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
 
         {/* Live Transcript */}
         {isRecording && (
-          <LiveTranscript transcript={liveTranscript} isRecording={isRecording} />
+          <LiveTranscript transcript={liveTranscript} isRecording={isRecording} isProcessing={isAIProcessing} />
         )}
 
         {/* Input Area */}
@@ -770,7 +767,7 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
         {currentSession?.entities?.length ? (
           <EntityCardList
             entities={currentSession.entities}
-            selectedEntityId={selectedEntityId}
+            selectedId={selectedEntityId}
             onEntityClick={handleEntityClick}
           />
         ) : null}

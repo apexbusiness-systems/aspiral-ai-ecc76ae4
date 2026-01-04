@@ -87,8 +87,10 @@ function SceneContent() {
   return (
     <>
       {/* Audit Fix: Environmental Atmosphere */}
+      <ambientLight intensity={0.3} />
       <fogExp2 attach="fog" args={['#0f0c29', 0.02]} />
-
+      <pointLight position={[10, 10, 10]} intensity={1} />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color={themeColors.secondary} />
       {/* Lighting - Dramatic "Aurora" Setup */}
       <ambientLight intensity={0.4} />
       <pointLight position={[10, 10, 10]} intensity={1.5} color="#ff00cc" distance={50} />
@@ -106,15 +108,16 @@ function SceneContent() {
         speed={0.5}
       />
 
+
       {/* Audit Fix: Additional floating particles for "Space Dust" */}
       <Sparkles count={100} scale={10} size={2} speed={0.4} opacity={0.5} color="#cfcfff" />
 
       {/* Ground plane hint - subtle grid */}
       <gridHelper args={[20, 20, 0x444444, 0x222222]} position={[0, -2, 0]} rotation={[0, 0, 0]}>
-         <meshBasicMaterial transparent opacity={0.1} />
+        <meshBasicMaterial transparent opacity={0.1} />
       </gridHelper>
-
-      {/* Entities & Core */}
+      
+      {/* Entities */}
       <SpiralEntities />
       <FrictionEffects />
 
