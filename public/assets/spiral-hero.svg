@@ -1,0 +1,25 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="spiralGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C4B5FD" stop-opacity="0.9" />
+      <stop offset="60%" stop-color="#8B5CF6" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#4C1D95" stop-opacity="0.2" />
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="256" fill="url(#spiralGlow)" />
+  <path
+    d="M256 96C180.1 96 118.4 157.7 118.4 233.6C118.4 294.7 167.3 343.6 228.4 343.6C276.8 343.6 316 304.4 316 256C316 217.5 285.5 187 247 187C217.7 187 193.8 210.9 193.8 240.2C193.8 261.7 211.3 279.2 232.8 279.2C247.7 279.2 259.8 267.1 259.8 252.2C259.8 241.7 251.3 233.2 240.8 233.2"
+    stroke="#F5F3FF"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M256 72C166.3 72 93.6 144.7 93.6 234.4C93.6 311.5 156.1 374 233.2 374C298.2 374 351.2 321 351.2 256C351.2 200.3 306.7 155.8 251 155.8C206 155.8 169.6 192.2 169.6 237.2C169.6 271.9 197.7 300 232.4 300"
+    stroke="#DDD6FE"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.8"
+  />
+</svg>

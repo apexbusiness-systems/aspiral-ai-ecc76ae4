@@ -35,10 +35,10 @@ export function MicButton({
   const lastClickRef = useRef<number>(0);
   const DEBOUNCE_MS = 200;
   
-  // Sizing Requirements: Min target 64px, prefer 72-80px
-  // Mobile: 80px (w-20)
-  // Desktop: 72px (w-18)
-  const mainSize = isMobile ? "h-20 w-20" : "h-[72px] w-[72px]";
+  // Sizing Requirements: Min target 48px, prefer 72-80px
+  // Mobile: 20vw with 80px min
+  // Desktop: 4rem (64px)
+  const mainSize = isMobile ? "h-[20vw] w-[20vw] min-h-[80px] min-w-[80px]" : "h-16 w-16";
   const secondarySize = isMobile ? "h-14 w-14" : "h-12 w-12";
   const iconSize = isMobile ? "h-8 w-8" : "h-7 w-7";
   const smallIconSize = isMobile ? "h-5 w-5" : "h-4 w-4";

@@ -5,8 +5,11 @@ import App from "./App.tsx";
 import "./index.css";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 
-registerSW({
+const updateSW = registerSW({
   immediate: true,
+  onNeedRefresh() {
+    updateSW(true);
+  },
 });
 
 // CRITICAL: Wrap root render in try-catch to catch immediate boot failures

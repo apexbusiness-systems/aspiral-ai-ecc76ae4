@@ -39,15 +39,19 @@ const queryClient = new QueryClient();
  */
 function PWAUpdateHandler() {
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
+    if (!("serviceWorker" in navigator)) return;
 
+    let hasRefreshed = false;
     const handleControllerChange = () => {
-      console.log("[PWA] Controller changed - App updated");
+      if (hasRefreshed) return;
+      hasRefreshed = true;
+      console.log("[PWA] Controller changed - reloading to latest version");
       toast.success("App updated to latest version", { duration: 3000 });
+      window.location.reload();
     };
 
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-    return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+    return () => navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
   }, []);
 
   return null;

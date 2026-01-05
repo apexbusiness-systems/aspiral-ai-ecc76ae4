@@ -10,7 +10,6 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { MicButton } from "@/components/MicButton";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { QuestionBubble } from "@/components/QuestionBubble";
-import { HaloOrbScene } from "@/components/3d/HaloOrbScene";
 import { BreakthroughCard } from "@/components/BreakthroughCard";
 import { UltraFastToggle } from "@/components/UltraFastToggle";
 import { LoadingState } from "@/components/LoadingState";
@@ -587,7 +586,13 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
             : "h-48 lg:h-full lg:w-1/3"
         }`}
       >
-        <HaloOrbScene />
+        <div className="flex h-full w-full items-center justify-center">
+          <img
+            src="/assets/spiral-hero.svg"
+            alt="Spiral"
+            className="spiral-hero-rotate w-[60%] max-w-[320px] min-w-[160px]"
+          />
+        </div>
         
         {/* Question Bubble - positioned in 3D area */}
         <QuestionBubble

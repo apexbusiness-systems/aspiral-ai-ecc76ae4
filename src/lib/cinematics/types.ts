@@ -2,8 +2,7 @@
  * TypeScript Types and Interfaces for ASPIRAL Cinematics
  */
 
-import type { EasingFunction } from './easing';
-import type * as THREE from 'three';
+import type { EasingFunction } from "./easing";
 
 /**
  * Cinematic variant names
@@ -64,7 +63,7 @@ export interface Euler {
 /**
  * Color type (hex string or THREE.Color)
  */
-export type Color = string | THREE.Color;
+export type Color = string;
 
 /**
  * Camera path configuration
