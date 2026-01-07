@@ -14,6 +14,7 @@ import { DebugOverlay } from "@/components/DebugOverlay";
 import { toast } from "sonner";
 import { SplashScreen } from '@capacitor/splash-screen';
 import PremiumSplash from "@/components/PremiumSplash";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 // Pages
 import Landing from "./pages/Landing";
@@ -100,6 +101,9 @@ const App = () => {
             <PWAUpdateHandler />
 
             <PremiumSplash isVisible={showSplash} />
+
+            {/* PWA Install Prompt - visible banner for install CTA */}
+            <PwaInstallPrompt />
 
             <HashRouter>
               <StandaloneModeRedirect />
