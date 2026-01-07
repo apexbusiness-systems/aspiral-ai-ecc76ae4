@@ -26,7 +26,11 @@ export default defineConfig(({ mode }) => ({
     target: "es2020",
   },
   test: {
-    exclude: [...configDefaults.exclude, "supabase/functions/spiral-ai/**/*.test.ts"],
+    exclude: [
+      ...configDefaults.exclude,
+      "supabase/functions/spiral-ai/**/*.test.ts",
+      "tests/chaos/**/*",  // Deno tests, run separately with `deno test`
+    ],
   },
   plugins: [
     react(),

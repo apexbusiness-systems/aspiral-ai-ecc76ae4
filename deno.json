@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "test": "deno test --allow-net --allow-read --allow-env tests/",
+    "test:chaos": "deno test --allow-net --allow-read --allow-env tests/chaos/",
+    "test:voice": "deno test --allow-net --allow-read --allow-env tests/chaos/voice-chaos.test.ts",
+    "test:stress": "deno test --allow-net --allow-read --allow-env tests/chaos/stress-battery.test.ts",
+    "bench": "deno bench --allow-net --allow-read --allow-env tests/benchmarks/"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.window", "dom"]
+  },
+  "test": {
+    "include": ["tests/"],
+    "exclude": ["tests/fixtures/"]
+  }
+}
