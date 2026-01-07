@@ -10,7 +10,7 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { MicButton } from "@/components/MicButton";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { QuestionBubble } from "@/components/QuestionBubble";
-import { HaloOrbScene } from "@/components/3d/HaloOrbScene";
+import { SpiralHeroSVG } from "@/components/SpiralHeroSVG";
 import { BreakthroughCard } from "@/components/BreakthroughCard";
 import { UltraFastToggle } from "@/components/UltraFastToggle";
 import { LoadingState } from "@/components/LoadingState";
@@ -579,15 +579,15 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
         onNewSession={handleNewSession}
       />
 
-      {/* 3D Visualization Panel */}
+      {/* Visual Spiral Panel (CSS-only, no WebGL) */}
       <div
         className={`relative border-b lg:border-b-0 lg:border-r border-border/30 transition-all duration-500 ${
-          is3DExpanded 
-            ? "h-[60vh] lg:h-full lg:w-2/3" 
+          is3DExpanded
+            ? "h-[60vh] lg:h-full lg:w-2/3"
             : "h-48 lg:h-full lg:w-1/3"
         }`}
       >
-        <HaloOrbScene />
+        <SpiralHeroSVG />
         
         {/* Question Bubble - positioned in 3D area */}
         <QuestionBubble
