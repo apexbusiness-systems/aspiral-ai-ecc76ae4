@@ -28,7 +28,7 @@ workflows:
           set -euo pipefail
 
           # Normalize Key ID naming drift:
-          # Codemagic App Store Connect CLI expects APP_STORE_CONNECT_KEY_IDENTIFIER
+          # Codemagic ASC tools prefer APP_STORE_CONNECT_KEY_IDENTIFIER but your env provides KEY_ID/KEY_iD
           KEY_IDENTIFIER="${APP_STORE_CONNECT_KEY_IDENTIFIER:-}"
 
           if [ -z "${KEY_IDENTIFIER}" ] && [ -n "${APP_STORE_CONNECT_KEY_ID:-}" ]; then
@@ -44,7 +44,7 @@ workflows:
             exit 1
           fi
 
-          # Persist for ALL later steps + publishing
+          # Persist for later steps
           echo "APP_STORE_CONNECT_KEY_IDENTIFIER=${KEY_IDENTIFIER}" >> "$CM_ENV"
 
           for v in TEAM_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_PRIVATE_KEY CERTIFICATE_PRIVATE_KEY; do
@@ -58,9 +58,8 @@ workflows:
           test -f "${INFO_PLIST_PATH}" || (echo "❌ Info.plist missing at ${INFO_PLIST_PATH}" && exit 1)
 
           echo "✅ Preflight OK"
-          echo "TEAM_ID=${TEAM_ID}"
 
-      - name: Pin npm (matches known-good lane behavior)
+      - name: Pin npm
         script: |
           set -euo pipefail
           node -v
@@ -96,10 +95,11 @@ workflows:
             echo "ℹ️ No Podfile found. Skipping pod install (SPM-only Capacitor project)."
           fi
 
-      - name: Resolve iOS build target (workspace vs project) + detect bundle id
+      - name: Resolve iOS build target + resolve VALID bundle id (never NO)
         script: |
           set -euo pipefail
 
+          # 1) Workspace
           if [ -d "${XCODE_WORKSPACE_PRIMARY}" ]; then
             XCODE_WORKSPACE="${XCODE_WORKSPACE_PRIMARY}"
           elif [ -d "${XCODE_WORKSPACE_FALLBACK}" ]; then
@@ -110,25 +110,53 @@ workflows:
             ls -la ios/App || true
             exit 1
           fi
-
           echo "XCODE_WORKSPACE=${XCODE_WORKSPACE}" >> "$CM_ENV"
           echo "✅ Using workspace: ${XCODE_WORKSPACE}"
 
-          # Detect PRODUCT_BUNDLE_IDENTIFIER (prevents wrong env like com.apex.tradeline)
-          BUNDLE_ID_DETECTED="$(xcodebuild -showBuildSettings \
-            -workspace "${XCODE_WORKSPACE}" \
-            -scheme "${XCODE_SCHEME}" \
-            -configuration Release 2>/dev/null \
-            | awk -F' = ' '/PRODUCT_BUNDLE_IDENTIFIER/ {print $2; exit}')"
+          # 2) Bundle ID — prefer project.pbxproj values (most reliable)
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+          CANDIDATES=""
 
-          if [ -z "${BUNDLE_ID_DETECTED:-}" ]; then
-            if [ -n "${BUNDLE_ID:-}" ]; then
-              BUNDLE_ID_DETECTED="${BUNDLE_ID}"
-              echo "⚠️ Could not detect bundle id; falling back to env BUNDLE_ID=${BUNDLE_ID_DETECTED}"
-            else
-              echo "❌ Could not detect bundle id and no BUNDLE_ID env var set."
-              exit 1
-            fi
+          if [ -f "${PBXPROJ}" ]; then
+            CANDIDATES="$(grep -oE 'PRODUCT_BUNDLE_IDENTIFIER = [^;]+' "${PBXPROJ}" \
+              | sed -E 's/PRODUCT_BUNDLE_IDENTIFIER = //g' \
+              | tr -d '"' \
+              | awk '{$1=$1};1' \
+              | sort -u || true)"
+          fi
+
+          # Helper: pick the first value that looks like a real bundle id and is not NO
+          pick_from_list() {
+            echo "$1" \
+              | tr -d '\r' \
+              | grep -E '^[A-Za-z0-9.-]+\.[A-Za-z0-9.-]+$' \
+              | grep -v '^NO$' \
+              | head -n 1 || true
+          }
+
+          BUNDLE_ID_DETECTED="$(pick_from_list "${CANDIDATES}")"
+
+          # 3) Fallback: xcodebuild build settings (filter out NO)
+          if [ -z "${BUNDLE_ID_DETECTED}" ]; then
+            BUNDLE_ID_DETECTED="$(xcodebuild -showBuildSettings \
+              -workspace "${XCODE_WORKSPACE}" \
+              -scheme "${XCODE_SCHEME}" \
+              -configuration Release 2>/dev/null \
+              | awk -F' = ' '/PRODUCT_BUNDLE_IDENTIFIER/ {print $2}' \
+              | awk '{$1=$1};1' \
+              | sort -u \
+              | grep -v '^NO$' \
+              | grep -E '^[A-Za-z0-9.-]+\.[A-Za-z0-9.-]+$' \
+              | head -n 1 || true)"
+          fi
+
+          # 4) FINAL validation (prevents the exact 409 you hit)
+          if [ -z "${BUNDLE_ID_DETECTED}" ] || [ "${BUNDLE_ID_DETECTED}" = "NO" ] || ! echo "${BUNDLE_ID_DETECTED}" | grep -q '\.'; then
+            echo "❌ Failed to resolve a valid BUNDLE_ID (got: '${BUNDLE_ID_DETECTED:-EMPTY}')."
+            echo "PBXPROJ candidates were:"
+            echo "${CANDIDATES}"
+            echo "Tip: Your repo still has TradeLine bundle env vars set; we must sign the actual aSpiral bundle id."
+            exit 1
           fi
 
           echo "BUNDLE_ID=${BUNDLE_ID_DETECTED}" >> "$CM_ENV"
@@ -152,9 +180,14 @@ workflows:
           : "${APP_STORE_CONNECT_PRIVATE_KEY:?APP_STORE_CONNECT_PRIVATE_KEY missing}"
           : "${CERTIFICATE_PRIVATE_KEY:?CERTIFICATE_PRIVATE_KEY missing}"
 
+          # HARD GUARD: never call Apple with NO again
+          if [ "${BUNDLE_ID}" = "NO" ] || ! echo "${BUNDLE_ID}" | grep -q '\.'; then
+            echo "❌ Invalid BUNDLE_ID='${BUNDLE_ID}'. Refusing to call App Store Connect."
+            exit 1
+          fi
+
           keychain initialize
 
-          # Explicit flags prevent the CLI from failing on env-name drift
           app-store-connect fetch-signing-files "${BUNDLE_ID}" \
             --type IOS_APP_STORE \
             --create \
@@ -198,6 +231,6 @@ workflows:
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
