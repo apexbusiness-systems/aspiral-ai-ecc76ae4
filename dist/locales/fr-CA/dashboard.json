@@ -1,0 +1,42 @@
+{
+  "welcome": {
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir",
+    "subtitle": "Votre réceptionniste IA travaille fort pour vous aujourd'hui",
+    "status_active": "Réceptionniste IA active"
+  },
+  "kpi": {
+    "bookings": "Réservations cette semaine",
+    "payout": "Paiement prévu",
+    "answerRate": "Appels interceptés",
+    "rescued": "Manqués mais sauvés"
+  },
+  "insights": {
+    "up": "Vous êtes en hausse cette semaine. Bon travail.",
+    "down": "Un peu plus calme — voulez-vous activer les rappels?"
+  },
+  "empty": {
+    "next": "Rien en attente pour le moment.",
+    "inbox": "Nous déposerons les nouvelles notes d'appel ici. Revenez bientôt.",
+    "kpi": "Calme en ce moment — votre prochain apparaîtra ici."
+  },
+  "actions": {
+    "hint": "Appuyez pour confirmer ou déplacer un rendez-vous."
+  },
+  "appointments": {
+    "title": "Rendez-vous d'aujourd'hui",
+    "subtitle": "Appels et réunions à venir",
+    "actions": {
+      "confirm": "Confirmer",
+      "reschedule": "Reprogrammer",
+      "add_note": "Ajouter une note"
+    }
+  },
+  "recent_wins": {
+    "title": "Victoires récentes",
+    "subtitle": "De bonnes choses se passent avec votre réceptionniste IA",
+    "view_all": "Voir toute l'activité"
+  }
+}
+

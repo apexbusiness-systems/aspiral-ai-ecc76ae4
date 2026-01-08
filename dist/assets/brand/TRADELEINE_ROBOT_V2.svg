@@ -1,0 +1,31 @@
+<!-- TrAdeleine v2 — brand-aligned, accessible, motion-safe -->
+<svg class="tl-robot-v2" viewBox="0 0 64 64" width="40" height="40"
+     role="img" aria-label="TrAdeleine — your friendly AI receptionist"
+     focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    :root{
+      --tl-blue:#2E5AAC;       /* brand accent */
+      --tl-orange:#FFB347;     /* brand primary */
+      --tl-ink:#141414;        /* text/dark */
+    }
+    .stroke{stroke:var(--tl-blue);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .fill-accent{fill:var(--tl-orange)}
+    .eye{fill:var(--tl-ink)}
+    .cheek{fill:var(--tl-orange);opacity:.15}
+    .g-float{transform-origin:32px 32px;animation:tlFloat 4s ease-in-out infinite}
+    @keyframes tlFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+    /* Respect user reduced-motion preference */
+    @media (prefers-reduced-motion: reduce){ .g-float{animation:none} }
+  </style>
+  <g class="g-float">
+    <line class="stroke" x1="32" y1="10" x2="32" y2="16"/>
+    <circle class="fill-accent" cx="32" cy="8" r="4"/>
+    <rect class="stroke" x="14" y="18" rx="10" ry="10" width="36" height="28"/>
+    <circle class="eye" cx="24" cy="32" r="3.25"/>
+    <circle class="eye" cx="40" cy="32" r="3.25"/>
+    <path class="stroke" d="M24,40 C28,44 36,44 40,40"/>
+    <circle class="cheek" cx="18.5" cy="35" r="4.5"/>
+    <circle class="cheek" cx="45.5" cy="35" r="4.5"/>
+    <ellipse cx="32" cy="52" rx="14" ry="3" fill="black" opacity=".08"/>
+  </g>
+</svg>

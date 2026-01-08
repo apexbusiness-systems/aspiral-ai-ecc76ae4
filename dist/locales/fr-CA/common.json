@@ -1,0 +1,46 @@
+{
+  "app": {
+    "title": "TradeLine 24/7 — Votre réceptionniste IA 24/7!",
+    "tagline": "Ne manquez jamais un appel. Travaillez pendant que vous dormez."
+  },
+  "nav": {
+    "features": "Fonctionnalités",
+    "pricing": "Tarification",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "call_center": "Centre d'appels",
+    "dashboard": "Tableau de bord"
+  },
+  "cta": {
+    "primary": "Commencer maintenant",
+    "get_started": "Commencer",
+    "learn_more": "En savoir plus",
+    "sign_in": "Se connecter",
+    "sign_out": "Se déconnecter"
+  },
+  "footer": {
+    "company": "Apex Business Systems",
+    "location": "Edmonton, AB, Canada",
+    "email": "info@tradeline247ai.com",
+    "copyright": "© 2025 TradeLine 24/7. Ne manquez jamais un appel. On s'en occupe.",
+    "privacy": "Confidentialité",
+    "terms": "Conditions"
+  },
+  "language": {
+    "switch": "Langue",
+    "en": "English",
+    "fr-CA": "Français (CA)"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "success": "Succès",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "confirm": "Confirmer"
+  }
+}
+

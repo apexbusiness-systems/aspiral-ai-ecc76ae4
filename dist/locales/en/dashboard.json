@@ -1,0 +1,41 @@
+{
+  "welcome": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon", 
+    "evening": "Good evening",
+    "subtitle": "Your AI receptionist is working hard for you today",
+    "status_active": "AI receptionist is active"
+  },
+  "kpi": {
+    "bookings": "Bookings this week",
+    "payout": "Expected payout", 
+    "answerRate": "Calls we caught",
+    "rescued": "Missed but saved"
+  },
+  "insights": {
+    "up": "You're trending up this week. Nice work.",
+    "down": "A little quieter — want reminders turned on?"
+  },
+  "empty": {
+    "next": "Nothing queued right now.",
+    "inbox": "We'll drop new call notes here. Check back soon.",
+    "kpi": "Quiet right now — your next one will show up here."
+  },
+  "actions": {
+    "hint": "Tap to confirm or move an appointment."
+  },
+  "appointments": {
+    "title": "Today's appointments",
+    "subtitle": "Upcoming calls and meetings",
+    "actions": {
+      "confirm": "Confirm",
+      "reschedule": "Reschedule", 
+      "add_note": "Add note"
+    }
+  },
+  "recent_wins": {
+    "title": "Recent wins",
+    "subtitle": "Good things happening with your AI receptionist",
+    "view_all": "View all activity"
+  }
+}

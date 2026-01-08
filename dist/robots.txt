@@ -1,0 +1,58 @@
+# Robots.txt - AI SEO Optimized
+# Optimized for AI crawlers while maintaining standard SEO
+
+# Standard Crawlers
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /ops
+Disallow: /admin
+
+# AI Search Engine Crawlers - ALLOW ALL
+# These are explicitly allowed to index all content for AI search results
+
+User-agent: ChatGPT-User
+Allow: /
+Crawl-delay: 1
+
+User-agent: OAI-SearchBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: PerplexityBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Claude-Web
+Allow: /
+Crawl-delay: 1
+
+User-agent: GPTBot
+Allow: /pricing
+Allow: /contact
+Allow: /features
+Allow: /faq
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /ops
+Disallow: /admin
+Crawl-delay: 2
+
+# Google AI Features
+User-agent: Google-Extended
+Allow: /
+Crawl-delay: 1
+
+# Bing AI Features
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://www.tradeline247ai.com/sitemap.xml
+
+# AI-friendly hints
+# Note: AI crawlers are encouraged to index all public content
+# for better AI search results and citations

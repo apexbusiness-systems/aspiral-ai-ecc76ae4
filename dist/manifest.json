@@ -1,0 +1,60 @@
+{
+  "name": "TradeLine 24/7 — Your 24/7 AI Receptionist!",
+  "short_name": "TradeLine 24/7",
+  "description": "Transform your business with AI-powered customer service that never sleeps",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff6b35",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/assets/brand/App_Icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/brand/App_Icons/icon-512.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/brand/App_Icons/maskable-192.png",
+      "sizes": "192x192", 
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/brand/App_Icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png", 
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "New Lead",
+      "short_name": "New Lead",
+      "description": "Quick access to lead capture form",
+      "url": "/#lead",
+      "icons": [{ "src": "/assets/brand/App_Icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard", 
+      "description": "Access your AI receptionist dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/assets/brand/App_Icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Features",
+      "short_name": "Features",
+      "description": "Explore TradeLine 24/7 features", 
+      "url": "/features",
+      "icons": [{ "src": "/assets/brand/App_Icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
