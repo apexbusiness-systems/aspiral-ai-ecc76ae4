@@ -19,6 +19,7 @@ import {
   getAudioSessionStatus,
 } from '@/lib/audioSession';
 import { featureFlags } from '@/lib/featureFlags';
+import { toast } from 'sonner';
 
 const logger = createLogger('useTextToSpeech');
 
@@ -86,7 +87,7 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
   const lastBackendRef = useRef(getAudioSessionStatus().backend);
 
   useEffect(() => {
-    return subscribeAudioSession((status) => {
+    const unsubscribe = subscribeAudioSession((status) => {
       const backendChanged = lastBackendRef.current !== status.backend;
       if (backendChanged) {
         lastBackendRef.current = status.backend;
@@ -109,6 +110,7 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
         };
       });
     });
+    return () => { unsubscribe(); };
   }, []);
 
   const stop = useCallback(() => {
@@ -120,11 +122,13 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
   const speak = useCallback(async (text: string): Promise<void> => {
     if (!featureFlags.voiceEnabled) {
       logger.warn('TTS disabled via VITE_VOICE_ENABLED');
+      toast.error('Voice output disabled');
       return;
     }
 
     if (!text || text.trim().length === 0) {
       logger.warn('speak called with empty text');
+      toast.error('Nothing to speak yet');
       return;
     }
 
@@ -159,6 +163,7 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
         onError: (error) => {
           emitTTSDebugEvent({ type: 'tts.error', data: { error: error.message } });
           setState(prev => ({ ...prev, error: error.message }));
+          toast.error('Voice playback failed', { description: error.message });
           onError?.(error);
         },
       });
@@ -175,6 +180,7 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
         isLoading: false,
         error: err.message,
       }));
+      toast.error('Voice playback failed', { description: err.message });
       onError?.(err);
     }
   }, [voice, speed, fallbackToWebSpeech, onStart, onEnd, onError]);
