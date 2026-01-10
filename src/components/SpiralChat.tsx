@@ -10,7 +10,7 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { MicButton } from "@/components/MicButton";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { QuestionBubble } from "@/components/QuestionBubble";
-import { SpiralHeroSVG } from "@/components/SpiralHeroSVG";
+import { SpiralStage } from "@/components/SpiralStage";
 import { BreakthroughCard } from "@/components/BreakthroughCard";
 import { UltraFastToggle } from "@/components/UltraFastToggle";
 import { LoadingState } from "@/components/LoadingState";
@@ -194,7 +194,7 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
   const { 
     speak: speakText, 
     stop: stopSpeaking, 
-    isSpeaking: isTTSSpeaking,
+    isTTSSpeaking,
     isLoading: isTTSLoading,
   } = useTextToSpeech({
     voice: 'nova', // Warm, friendly voice
@@ -579,7 +579,7 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
         onNewSession={handleNewSession}
       />
 
-      {/* Visual Spiral Panel (CSS-only, no WebGL) */}
+      {/* Visual Spiral Panel (WebGL stage with safe SVG fallback) */}
       <div
         className={`relative border-b lg:border-b-0 lg:border-r border-border/30 transition-all duration-500 ${
           is3DExpanded
@@ -587,7 +587,7 @@ export const SpiralChat = forwardRef<SpiralChatHandle, SpiralChatProps>((_, ref)
             : "h-48 lg:h-full lg:w-1/3"
         }`}
       >
-        <SpiralHeroSVG />
+        <SpiralStage />
         
         {/* Question Bubble - positioned in 3D area */}
         <QuestionBubble

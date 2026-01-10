@@ -14,7 +14,10 @@ import { useSessionStore } from "@/stores/sessionStore";
 import type { DeviceCapabilities } from "@/lib/cinematics/types";
 
 function supportsOffscreenCanvas(): boolean {
-  return typeof HTMLCanvasElement !== "undefined" && "transferControlToOffscreen" in HTMLCanvasElement.prototype;
+  return (
+    typeof HTMLCanvasElement !== "undefined" &&
+    "transferControlToOffscreen" in HTMLCanvasElement.prototype
+  );
 }
 
 function useDeviceProfile(): { capabilities: DeviceCapabilities; reducedMotion: boolean } {
@@ -23,10 +26,16 @@ function useDeviceProfile(): { capabilities: DeviceCapabilities; reducedMotion: 
   return { capabilities, reducedMotion };
 }
 
-function EnhancedSceneContent({ capabilities, reducedMotion }: { capabilities: DeviceCapabilities; reducedMotion: boolean }) {
+function EnhancedSceneContent({
+  capabilities,
+  reducedMotion,
+}: {
+  capabilities: DeviceCapabilities;
+  reducedMotion: boolean;
+}) {
   const isBreakthroughImminent = useSessionStore((state) => state.isBreakthroughImminent);
   const isBreakthroughActive = useSessionStore((state) => state.isBreakthroughActive);
-  
+
   const showPremiumSpiral = isBreakthroughImminent || isBreakthroughActive;
 
   return (
@@ -43,11 +52,26 @@ function EnhancedSceneContent({ capabilities, reducedMotion }: { capabilities: D
   );
 }
 
-export function EnhancedSpiralScene() {
+export interface EnhancedSpiralSceneProps {
+  /**
+   * When true, always render an interactive R3F Canvas (camera controls).
+   * OffscreenCanvas worker rendering is intentionally non-interactive.
+   */
+  interactive?: boolean;
+}
+
+export function EnhancedSpiralScene({ interactive = true }: EnhancedSpiralSceneProps) {
   const currentSession = useSessionStore((state) => state.currentSession);
   const hasEntities = (currentSession?.entities?.length || 0) > 0;
   const { capabilities, reducedMotion } = useDeviceProfile();
-  const useWorker = supportsOffscreenCanvas() && isRendererWorkerEnabled() && !hasEntities;
+
+  // IMPORTANT: The worker/offscreen renderer is non-interactive.
+  // If this scene is used as the user's "stage" (camera manipulation), force interactive Canvas.
+  const useWorker =
+    !interactive &&
+    supportsOffscreenCanvas() &&
+    isRendererWorkerEnabled() &&
+    !hasEntities;
 
   if (useWorker) {
     return (
